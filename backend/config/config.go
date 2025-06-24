@@ -10,6 +10,7 @@ type (
 	Config struct {
 		App  App
 		HTTP HTTP
+		Log  Log
 	}
 
 	App struct {
@@ -18,7 +19,12 @@ type (
 	}
 
 	HTTP struct {
-		Port string `env:"HTTP_PORT,required"`
+		Port           string `env:"HTTP_PORT,required"`
+		UsePreforkMode bool   `env:"HTTP_USE_PREFORK_MODE" envDefault:"false"`
+	}
+
+	Log struct {
+		Level string `env:"LOG_LEVEL,required"`
 	}
 )
 
