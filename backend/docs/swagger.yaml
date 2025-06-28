@@ -1,0 +1,113 @@
+definitions:
+  EasyRentGo_internal_controller_http_v1_request.RentPoint:
+    properties:
+      addr:
+        example: г. Калининград, ул Баласа
+        type: string
+      name:
+        example: RentPoint 1
+        type: string
+    required:
+    - addr
+    - name
+    type: object
+  EasyRentGo_internal_entity.RentPoint:
+    properties:
+      addr:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      products:
+        items:
+          type: string
+        type: array
+    type: object
+info:
+  contact: {}
+paths:
+  /rentpoint/:
+    get:
+      consumes:
+      - application/json
+      description: Get all RentPoints
+      operationId: get-all-rentpoints
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/EasyRentGo_internal_entity.RentPoint'
+            type: array
+        "400":
+          description: Bad Request
+          schema: {}
+        "500":
+          description: Internal Server Error
+          schema: {}
+      summary: Get all RentPoints
+      tags:
+      - rentpoint
+    post:
+      consumes:
+      - application/json
+      description: Create RentPoint
+      operationId: create-rentpoint
+      parameters:
+      - description: Create RentPoint
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/EasyRentGo_internal_controller_http_v1_request.RentPoint'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/EasyRentGo_internal_entity.RentPoint'
+        "400":
+          description: Bad Request
+          schema: {}
+        "500":
+          description: Internal Server Error
+          schema: {}
+      summary: Create RentPoint
+      tags:
+      - rentpoint
+  /rentpoint/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get RentPoint by ID
+      operationId: get-rentpoint-by-id
+      parameters:
+      - description: RentPoint ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/EasyRentGo_internal_entity.RentPoint'
+        "400":
+          description: Bad Request
+          schema: {}
+        "404":
+          description: Not Found
+          schema: {}
+        "500":
+          description: Internal Server Error
+          schema: {}
+      summary: Get RentPoint by ID
+      tags:
+      - rentpoint
+swagger: "2.0"

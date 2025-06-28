@@ -8,11 +8,13 @@ import (
 	v1 "EasyRentGo/internal/controller/http/v1"
 	"EasyRentGo/internal/usecase"
 
+	_ "EasyRentGo/docs" // Swagger docs.
+
 	"EasyRentGo/config"
 	"EasyRentGo/pkg/logger"
 
-	// _ "EasyRentGo/docs" // Swagger docs.
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/swagger"
 )
 
 // NewRouter -.
@@ -22,7 +24,7 @@ import (
 // @version     1.0
 // @host        localhost:8080
 // @BasePath    /v1
-func NewRouter(app *fiber.App, cfg *config.Config, rp usecase.RentPoint, l logger.Interface) {
+func NewRouter(app *fiber.App, cfg *config.Config, rp usecase.RentPointUseCase, tmp usecase.TemplateUseCase, l logger.Interface) {
 	// Options
 	app.Use(middleware.Logger(l))
 	app.Use(middleware.Recovery(l))
@@ -33,11 +35,10 @@ func NewRouter(app *fiber.App, cfg *config.Config, rp usecase.RentPoint, l logge
 	// 	prometheus.RegisterAt(app, "/metrics")
 	// 	app.Use(prometheus.Middleware)
 	// }
-
-	// // Swagger
-	// if cfg.Swagger.Enabled {
-	// 	app.Get("/swagger/*", swagger.HandlerDefault)
-	// }
+	// Swagger
+	if cfg.Swagger.Enabled {
+		app.Get("/swagger/*", swagger.HandlerDefault)
+	}
 
 	// // K8s probe
 	// app.Get("/healthz", func(ctx *fiber.Ctx) error { return ctx.SendStatus(http.StatusOK) })
@@ -45,6 +46,6 @@ func NewRouter(app *fiber.App, cfg *config.Config, rp usecase.RentPoint, l logge
 	// Routers
 	apiV1Group := app.Group("/v1")
 	{
-		v1.NewRentRoutes(apiV1Group, rp, l)
+		v1.NewRoutes(apiV1Group, rp, tmp, l)
 	}
 }

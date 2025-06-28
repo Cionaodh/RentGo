@@ -8,9 +8,10 @@ import (
 
 type (
 	Config struct {
-		App  App
-		HTTP HTTP
-		Log  Log
+		App     App
+		HTTP    HTTP
+		Log     Log
+		Swagger Swagger
 	}
 
 	App struct {
@@ -25,6 +26,10 @@ type (
 
 	Log struct {
 		Level string `env:"LOG_LEVEL,required"`
+	}
+
+	Swagger struct {
+		Enabled bool `env:"SWAGGER_ENABLED" envDefault:"false"`
 	}
 )
 

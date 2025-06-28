@@ -11,15 +11,35 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func NewRentRoutes(apiV1Group fiber.Router, rp usecase.RentPoint, l logger.Interface) {
-	r := &V1{rp: rp, l: l, v: validator.New(validator.WithRequiredStructEnabled())}
+func NewRoutes(apiV1Group fiber.Router, rp usecase.RentPointUseCase, tmp usecase.TemplateUseCase, l logger.Interface) {
+	r := &V1RentPointController{
+		rp: rp,
+		l:  l,
+		v:  validator.New(validator.WithRequiredStructEnabled()),
+	}
 
 	// Group endpoints
-	rentGroup := apiV1Group.Group("/rentpoint")
+	rentPointGroup := apiV1Group.Group("/rentpoint")
 
 	{
-		rentGroup.Post("/", r.create)    // POST /rentpoint/
-		rentGroup.Get("/", r.getAll)     // GET /rentpoint/
-		rentGroup.Get("/:id", r.getByID) // GET /rentpoint/{id}
+		rentPointGroup.Post("/", r.create)    // POST /rentpoint/
+		rentPointGroup.Get("/", r.getAll)     // GET /rentpoint/
+		rentPointGroup.Get("/:id", r.getByID) // GET /rentpoint/{id}
 	}
+
+	tp := &V1ProductTmpController{
+		tmp: tmp,
+		l:   l,
+		v:   validator.New(validator.WithRequiredStructEnabled()),
+	}
+
+	// Group endpoints
+	tmpProductGroup := apiV1Group.Group("/tmpproduct")
+
+	{
+		tmpProductGroup.Post("/", tp.create)    // POST /tmpproduct/
+		tmpProductGroup.Get("/", tp.getAll)     // GET /tmpproduct/
+		tmpProductGroup.Get("/:id", tp.getByID) // GET /tmpproduct/{id}
+	}
+
 }

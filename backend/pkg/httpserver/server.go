@@ -8,6 +8,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+// default value server oprionts
 const (
 	_defaultAddr            = ":80"
 	_defaultReadTimeout     = 5 * time.Second

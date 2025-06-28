@@ -23,15 +23,16 @@ type ProductTemp struct {
 type ProductStatus string
 
 const (
-	StatusFree     ProductStatus = "free"
-	StatusReserved ProductStatus = "reserved"
-	StatusRented   ProductStatus = "rented"
+	StatusUnused   ProductStatus = "unused"   // "Неисползуется"
+	StatusFree     ProductStatus = "free"     // "Свободен"
+	StatusReserved ProductStatus = "reserved" // "Зарезервирован"
+	StatusRented   ProductStatus = "rented"   // "Арендован"
 )
 
-// Продукт
 type Product struct {
 	ID          uuid.UUID
 	TemplateID  uuid.UUID
 	RentPointID uuid.UUID
 	Status      ProductStatus
 }
+

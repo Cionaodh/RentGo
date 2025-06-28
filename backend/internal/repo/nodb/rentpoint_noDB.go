@@ -1,4 +1,4 @@
-package persistent
+package nodb
 
 import (
 	"EasyRentGo/internal/entity"
@@ -11,29 +11,30 @@ import (
 
 var _ repo.RentPointRepo = (*DBRentPoint)(nil)
 
-type Point struct {
-	ID       uuid.UUID
-	Name     string
-	Addr     string
-	Products []*entity.Product
+type point struct {
+	id       uuid.UUID
+	name     string
+	addr     string
+	products []*product
 	// Координаты (45.63545 74.54345 - чтобы указать точную точку)
 }
 
-var RentPoints []Point
+var rentPoints []point
 
 type DBRentPoint struct {
-	DB *[]Point
+	DB *[]point
 }
 
-func New() *DBRentPoint {
-	DefaultPoint := Point{
-		Name:     "Аренда",
-		Products: make([]*entity.Product, 0),
+func NewRentPoint() *DBRentPoint {
+	DefaultPoint := point{
+		name:     "Аренда",
+		products: make([]*product, 0),
 	}
-	RentPoints = append(RentPoints, DefaultPoint)
+	rentPoints = append(rentPoints, DefaultPoint)
 
+	products = append(products, product{})
 	return &DBRentPoint{
-		DB: &RentPoints,
+		DB: &rentPoints,
 	}
 }
 
@@ -42,31 +43,31 @@ func New() *DBRentPoint {
 // Создание новой точки проката
 func (db *DBRentPoint) Create(ctx context.Context, rp entity.RentPoint) error {
 	// Проверяем, есть ли уже точка с таким ID
-	for _, existing := range RentPoints {
-		if existing.ID == rp.ID {
+	for _, existing := range rentPoints {
+		if existing.id == rp.ID {
 			return fmt.Errorf("точка проката с ID %s уже существует", rp.ID)
 		}
 	}
 
-	p := Point{
-		ID:       rp.ID,
-		Name:     rp.Name,
-		Addr:     rp.Addr,
-		Products: make([]*entity.Product, 0),
+	p := point{
+		id:       rp.ID,
+		name:     rp.Name,
+		addr:     rp.Addr,
+		products: make([]*product, 0),
 	}
 
-	RentPoints = append(RentPoints, p)
+	rentPoints = append(rentPoints, p)
 	return nil
 }
 
 // Получение всех точек проката (не передаем прикрепленные продукты)
 func (db *DBRentPoint) GetAll(ctx context.Context) ([]entity.RentPoint, error) {
 	rentPointArr := make([]entity.RentPoint, 0)
-	for i := 0; i < len(RentPoints); i++ {
+	for i := 0; i < len(rentPoints); i++ {
 		rentPointArr = append(rentPointArr, entity.RentPoint{
-			ID:   RentPoints[i].ID,
-			Name: RentPoints[i].Name,
-			Addr: RentPoints[i].Addr,
+			ID:   rentPoints[i].id,
+			Name: rentPoints[i].name,
+			Addr: rentPoints[i].addr,
 		})
 	}
 	return rentPointArr, nil
@@ -74,15 +75,30 @@ func (db *DBRentPoint) GetAll(ctx context.Context) ([]entity.RentPoint, error) {
 
 // Получение точки проката по id (со списком продуктов)
 func (db *DBRentPoint) GetByID(ctx context.Context, id uuid.UUID) (entity.RentPoint, error) {
-	for _, rp := range RentPoints {
-		if rp.ID == id {
-			// Возвращаем полную копию объекта
-			return entity.RentPoint{
-				ID:   rp.ID,
-				Name: rp.Name,
-				Addr: rp.Addr,
-			}, nil
+
+	rp, err := db.getObject(id)
+	if err != nil {
+		return entity.RentPoint{}, err
+	}
+
+	return entity.RentPoint{
+		ID:   rp.id,
+		Name: rp.name,
+		Addr: rp.addr,
+		// Products: rp.Products, // TODO: добавить
+	}, nil
+
+	// return entity.RentPoint{}, fmt.Errorf("точка проката с ID %s не найдена", id)
+}
+
+// Получение объекта по id
+func (db *DBRentPoint) getObject(id uuid.UUID) (point, error) {
+	for _, rp := range rentPoints {
+		if rp.id == id {
+			return rp, nil
 		}
 	}
-	return entity.RentPoint{}, fmt.Errorf("точка проката с ID %s не найдена", id)
+	return point{}, fmt.Errorf("object RentPoint: %s - not found", id)
 }
+
+//

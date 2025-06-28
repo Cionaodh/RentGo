@@ -1,12 +1,16 @@
 package product
 
-type ProductUseCase struct {
-	// указание на репу (например, repo.ProductRepo)
+import (
+	"EasyRentGo/internal/repo"
+)
+
+type Product struct {
+	repo repo.ProductRepo // указание на репу (например, repo.ProductRepo)
 	// указание на внешние интерфейсы (например, ProductWebAPI)
 }
 
-func New() *ProductUseCase { // передаем 
-	return &ProductUseCase{}
+func New(p repo.ProductRepo) *Product { // передаем
+	return &Product{
+		repo: p,
+	}
 }
-
-// Реализуем интерфейс 
