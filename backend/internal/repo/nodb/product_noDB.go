@@ -9,10 +9,10 @@ import (
 )
 
 type product struct {
-	ID          uuid.UUID
-	TemplateID  *template
-	RentPointID *point
-	Status      entity.ProductStatus
+	id          uuid.UUID
+	templateID  *template
+	rentPointID *point
+	status      entity.ProductStatus
 }
 
 var products []product
@@ -50,7 +50,7 @@ func (p *DBProduct) SetStatus(ctx context.Context, id uuid.UUID, status entity.P
 // Получение объекта по id
 func (db *DBProduct) getObject(id uuid.UUID) (product, error) {
 	for _, p := range products {
-		if p.ID == id {
+		if p.id == id {
 			return p, nil
 		}
 	}
