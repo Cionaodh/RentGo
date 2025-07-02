@@ -1,6 +1,10 @@
 package entity
 
-import "github.com/google/uuid"
+import (
+	"fmt"
+
+	"github.com/google/uuid"
+)
 
 // Точка проката
 type RentPoint struct {
@@ -36,3 +40,22 @@ type Product struct {
 	Status      ProductStatus
 }
 
+// ParseProductStatus конвертирует строку в ProductStatus (с проверкой валидности).
+func ParseProductStatus(s string) (ProductStatus, error) {
+	switch s {
+	case string(StatusUnused), string(StatusFree),
+		string(StatusReserved), string(StatusRented):
+		return ProductStatus(s), nil
+	default:
+		return "", fmt.Errorf("invalid ProductStatus: %s", s)
+	}
+}
+
+// // MustParseProductStatus паникует при невалидном статусе (использовать только в тестах/инициализации).
+// func MustParseProductStatus(s string) ProductStatus {
+// 	status, err := ParseProductStatus(s)
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// 	return status
+// }
