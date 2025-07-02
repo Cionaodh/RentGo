@@ -24,7 +24,7 @@ import (
 // @version     1.0
 // @host        localhost:8080
 // @BasePath    /v1
-func NewRouter(app *fiber.App, cfg *config.Config, rp usecase.RentPointUseCase, tmp usecase.TemplateUseCase, l logger.Interface) {
+func NewRouter(app *fiber.App, cfg *config.Config, rp usecase.RentPointUseCase, tmp usecase.TemplateUseCase, p usecase.ProductUseCase, l logger.Interface) {
 	// Options
 	app.Use(middleware.Logger(l))
 	app.Use(middleware.Recovery(l))
