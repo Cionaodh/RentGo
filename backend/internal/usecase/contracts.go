@@ -18,6 +18,7 @@ type RentPointUseCase interface {
 	Create(context.Context, entity.RentPoint) (entity.RentPoint, error)
 	GetAll(context.Context) ([]entity.RentPoint, error)
 	GetByID(context.Context, uuid.UUID) (entity.RentPoint, error)
+	// TODO: добавление в точку проката - продукт
 }
 
 type TemplateUseCase interface {
@@ -27,4 +28,6 @@ type TemplateUseCase interface {
 }
 
 type ProductUseCase interface {
+	Create(context.Context, uuid.UUID, int) (entity.Product, error)
+	GetAll(context.Context) ([]entity.Product, error)
 }
