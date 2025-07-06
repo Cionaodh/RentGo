@@ -4,6 +4,7 @@ import (
 	"EasyRentGo/config"
 	"EasyRentGo/internal/controller/http"
 	"EasyRentGo/internal/repo/nodb"
+	"EasyRentGo/internal/usecase/product"
 	"EasyRentGo/internal/usecase/producttemp"
 	"EasyRentGo/internal/usecase/rentpoint"
 	"EasyRentGo/pkg/httpserver"
@@ -21,18 +22,32 @@ func Run(cfg *config.Config) { // Передача конфигуратора
 
 	// Инициализация БД
 
+	// Инициализация репозиториев
+	// 1. Инициализируем репозитории
+	rentPointRepo := nodb.NewRentPoint() // или postgres.NewRentPointRepo(db)
+	productRepo := nodb.NewProduct()     // или postgres.NewProductRepo(db)
+	productTempRepo := nodb.NewTemplate()
+
 	// Инициализация слоя бизнес-логики
-	rentPoint := rentpoint.New(nodb.NewRentPoint())
-	tmpProduct := producttemp.New(nodb.NewTemplate())
+
+	tmpProductUC := producttemp.New(productTempRepo)
+	productUC := product.New(productRepo, nil)       // rentPointUC пока nil
+	rentPointUC := rentpoint.New(rentPointRepo, nil) // productUC пока nil
+
+	// // Устанавливаем зависимости между объектами
+	// productUC.SetRentPointUC(rentPointUC) // Product теперь знает о RentPoint
+	// rentPointUC.SetProductUC(productUC)   // RentPoint теперь знает о Product
 
 	// Инициализация серевера
 	httpServer := httpserver.New(httpserver.Port(cfg.HTTP.Port), httpserver.Prefork(cfg.HTTP.UsePreforkMode))
 	http.NewRouter(
 		httpServer.App,
 		cfg,
-		rentPoint,  // домен точки проката
-		tmpProduct, // домен шаблона продукта
-		l)
+		rentPointUC,  // домен точки проката
+		tmpProductUC, // домен шаблона продукта
+		productUC,
+		l,
+	)
 
 	httpServer.Start()
 
