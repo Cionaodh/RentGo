@@ -25,3 +25,5 @@ vendor/
 coverage.txt
 
 readmeTest.md
+
+Makefile

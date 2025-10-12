@@ -14,10 +14,7 @@ import (
 	"syscall"
 )
 
-func Run(cfg *config.Config) {
-
-	// Logger
-	l := logger.New(cfg.Log.Level)
+func Run(cfg *config.Config, l *logger.Logger) {
 
 	// Postgres
 	l.Info("Initializing postgres...")
