@@ -8,8 +8,13 @@ import (
 	"github.com/google/uuid"
 )
 
+type CreateRentpointInput struct {
+	Name string
+	Addr string
+}
+
 type RentPoint interface {
-	Create(context.Context, entity.RentPoint) (entity.RentPoint, error)
+	CreateRentpoint(context.Context, CreateRentpointInput) (entity.RentPoint, error)
 	GetAll(context.Context) ([]entity.RentPoint, error)
 	GetByID(context.Context, uuid.UUID) (entity.RentPoint, error)
 	Delete(context.Context, uuid.UUID) error

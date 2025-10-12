@@ -1,7 +1,6 @@
 package v1
 
 import (
-	"EasyRentGo/internal/controller/http/v1/request"
 	"EasyRentGo/internal/entity"
 	"EasyRentGo/internal/usecase"
 	"EasyRentGo/pkg/logger"
@@ -25,8 +24,14 @@ func newTemplateRoutes(tmp usecase.Template, l logger.Interface, v *validator.Va
 
 // Обработчики маршрутов
 
+type TemplateDTO struct {
+	Name        string `json:"name" validate:"required" example:"Велосипед 1"`
+	Description string `json:"descriptiont" example:"Описание продукта"`
+	Price       int    `json:"price" validate:"required" example:"800"`
+}
+
 func (r *templateRoutes) create(ctx *fiber.Ctx) error {
-	var body request.TmpProduct
+	var body TemplateDTO
 
 	// Read body request
 	if err := ctx.BodyParser(&body); err != nil {

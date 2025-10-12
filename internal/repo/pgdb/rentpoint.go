@@ -2,11 +2,13 @@ package pgdb
 
 import (
 	"EasyRentGo/internal/entity"
+	rp "EasyRentGo/internal/repo/repotypes"
 	"EasyRentGo/pkg/postgres"
 	"context"
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 )
 
 // RentpointRepo -.
@@ -20,26 +22,38 @@ func NewRentpointRepo(pg *postgres.Postgres) *RentpointRepo {
 }
 
 // Create - Создание новой точки проката.
-func (r *RentpointRepo) Create(ctx context.Context, rp entity.RentPoint) error {
+func (r *RentpointRepo) Create(ctx context.Context, rp rp.CreateRentpointInput) (entity.RentPoint, error) {
 	sql := `
-		INSERT INTO rent_points (id, name, addr)
-		VALUES ($1, $2, $3)
+		INSERT INTO rent_points 
+			(name, addr)
+		VALUES 
+			($1, $2)
+		RETURNING *
 	`
 
-	_, err := r.Pool.Exec(ctx, sql, rp.ID, rp.Name, rp.Addr)
+	rows, err := r.Pool.Query(ctx, sql,
+		rp.Name,
+		rp.Addr,
+	)
+	// _, err := r.Pool.Exec(ctx, sql, rp.Name, rp.Addr)
 	if err != nil {
-		return fmt.Errorf("RentpointRepo - Create - r.Pool.Exec: %w", err)
+		return entity.RentPoint{}, fmt.Errorf("RentpointRepo - Create - r.Pool.Query: %w", err)
 	}
 
-	// Если есть привязанные продукты, обновляем их связь с точкой проката
-	if len(rp.Products) > 0 {
-		err = r.updatePointProducts(ctx, rp.ID, rp.Products)
-		if err != nil {
-			return fmt.Errorf("RentpointRepo - Create - updatePointProducts: %w", err)
-		}
+	point, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[entity.RentPoint])
+	if err != nil {
+		return entity.RentPoint{}, fmt.Errorf("pgdb.RentPoint - Create - pgx.CollectExactlyOneRow: %w", err)
 	}
 
-	return nil
+	// // Если есть привязанные продукты, обновляем их связь с точкой проката
+	// if len(rp.Products) > 0 {
+	// 	err = r.updatePointProducts(ctx, rp.ID, rp.Products)
+	// 	if err != nil {
+	// 		return fmt.Errorf("RentpointRepo - Create - updatePointProducts: %w", err)
+	// 	}
+	// }
+
+	return point, nil
 }
 
 // GetAll - Получение всех точек проката (без прикрепленных продуктов).

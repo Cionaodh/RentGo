@@ -3,6 +3,7 @@ package repo
 import (
 	"EasyRentGo/internal/entity"
 	"EasyRentGo/internal/repo/pgdb"
+	rp "EasyRentGo/internal/repo/repotypes"
 	"EasyRentGo/pkg/postgres"
 	"context"
 
@@ -10,7 +11,7 @@ import (
 )
 
 type RentPoint interface {
-	Create(context.Context, entity.RentPoint) error
+	Create(context.Context, rp.CreateRentpointInput) (entity.RentPoint, error)
 	GetAll(context.Context) ([]entity.RentPoint, error)
 	GetByID(context.Context, uuid.UUID) (entity.RentPoint, error)
 	Delete(context.Context, uuid.UUID) error

@@ -1,8 +1,6 @@
 package v1
 
 import (
-	"EasyRentGo/internal/controller/http/v1/request"
-	"EasyRentGo/internal/entity"
 	"EasyRentGo/internal/usecase"
 	"EasyRentGo/pkg/logger"
 	"net/http"
@@ -23,10 +21,15 @@ func newRentPointRoutes(rp usecase.RentPoint, l logger.Interface, v *validator.V
 	return &rentPointRoutes{rp, l, v}
 }
 
+type RentpointDTO struct {
+	Name string `json:"name"       validate:"required"  example:"RentPoint 1"`
+	Addr string `json:"addr"       validate:"required"  example:"г. Калининград, ул Баласа"`
+}
+
 // Обработчики маршрутов
 
 func (r *rentPointRoutes) create(ctx *fiber.Ctx) error {
-	var body request.RentPoint
+	var body RentpointDTO
 
 	// Read body request
 	if err := ctx.BodyParser(&body); err != nil {
@@ -42,9 +45,9 @@ func (r *rentPointRoutes) create(ctx *fiber.Ctx) error {
 		return errorResponse(ctx, http.StatusBadRequest, "invalid request body")
 	}
 
-	point, err := r.rp.Create(
+	point, err := r.rp.CreateRentpoint(
 		ctx.UserContext(),
-		entity.RentPoint{
+		usecase.CreateRentpointInput{
 			Name: body.Name,
 			Addr: body.Addr,
 		},

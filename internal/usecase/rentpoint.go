@@ -3,6 +3,7 @@ package usecase
 import (
 	"EasyRentGo/internal/entity"
 	"EasyRentGo/internal/repo"
+	repotype "EasyRentGo/internal/repo/repotypes"
 	"context"
 	"fmt"
 
@@ -19,10 +20,14 @@ func NewRentPointUsecase(rp repo.RentPoint) *RentPointUsecase {
 	}
 }
 
-func (rp *RentPointUsecase) Create(ctx context.Context, point entity.RentPoint) (entity.RentPoint, error) {
-	point.ID = uuid.New() // генерируем уникальный id
+func (rp *RentPointUsecase) CreateRentpoint(ctx context.Context, in CreateRentpointInput) (entity.RentPoint, error) {
+	// point.ID = uuid.New()
 
-	if err := rp.repo.Create(ctx, point); err != nil {
+	point, err := rp.repo.Create(ctx, repotype.CreateRentpointInput{
+		Name: in.Name,
+		Addr: in.Addr,
+	})
+	if err != nil {
 		return entity.RentPoint{}, fmt.Errorf("RentPointUseCase - Create - rp.repo.Create: %w", err)
 	}
 
