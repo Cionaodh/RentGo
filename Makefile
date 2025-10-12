@@ -1,6 +1,5 @@
 RentGo:
-	docker-compose build
-	docker-compose up -d
+	docker-compose -f docker-compose.yml up -d --force-recreate
 
-Swagger:
-	swag init -g ./internal/controller/http/router.go --output docs --parseDependency
+# Swagger:
+# 	swag init -g ./internal/controller/http/router.go --output docs --parseDependency
