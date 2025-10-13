@@ -11,9 +11,9 @@ import (
 )
 
 const (
-	_defaultMaxPoolSize  = 1
-	_defaultConnAttempts = 10
-	_defaultConnTimeout  = time.Second
+	defaultMaxPoolSize  = 1
+	defaultConnAttempts = 10
+	defaultConnTimeout  = time.Second
 )
 
 // Postgres -.
@@ -26,40 +26,41 @@ type Postgres struct {
 }
 
 // New -.
-func New(url string, opts ...Option) (*Postgres, error) {
+func New(pg_url string, opts ...Option) (*Postgres, error) {
 	pg := &Postgres{
-		maxPoolSize:  _defaultMaxPoolSize,
-		connAttempts: _defaultConnAttempts,
-		connTimeout:  _defaultConnTimeout,
+		maxPoolSize:  defaultMaxPoolSize,
+		connAttempts: defaultConnAttempts,
+		connTimeout:  defaultConnTimeout,
 	}
 
-	// Custom options
 	for _, opt := range opts {
 		opt(pg)
 	}
 
-	poolConfig, err := pgxpool.ParseConfig(url)
+	poolConfig, err := pgxpool.ParseConfig(pg_url)
 	if err != nil {
-		return nil, fmt.Errorf("postgres - NewPostgres - pgxpool.ParseConfig: %w", err)
+		return nil, fmt.Errorf("postgres - New - pgxpool.ParseConfig: %w", err)
 	}
 
 	poolConfig.MaxConns = int32(pg.maxPoolSize)
 
 	for pg.connAttempts > 0 {
 		pg.Pool, err = pgxpool.NewWithConfig(context.Background(), poolConfig)
-		if err == nil {
+		if err != nil {
+			return nil, fmt.Errorf("postgres - New - pgxpool.NewWithConfig: %w", err)
+		}
+
+		if err = pg.Pool.Ping(context.Background()); err == nil {
 			break
 		}
 
-		log.Printf("Postgres is trying to connect, attempts left: %d", pg.connAttempts)
-
-		time.Sleep(pg.connTimeout)
-
 		pg.connAttempts--
+		log.Printf("Postgres trying to connect, attempts left: %d", pg.connAttempts)
+		time.Sleep(pg.connTimeout)
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("postgres - NewPostgres - connAttempts == 0: %w", err)
+		return nil, fmt.Errorf("postgres - New - pg.Pool.Ping: %w", err)
 	}
 
 	return pg, nil
