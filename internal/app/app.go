@@ -18,7 +18,7 @@ func Run(cfg *config.Config, l *logger.Logger) {
 
 	// Postgres
 	l.Info("Initializing postgres...")
-	pg, err := postgres.New(cfg.PG.URL, postgres.MaxPoolSize(cfg.PG.PoolMax))
+	pg, err := postgres.New(cfg.PG.Conn, postgres.MaxPoolSize(cfg.PG.PoolMax))
 	if err != nil {
 		l.Fatal(fmt.Errorf("app - Run - postgres.New: %w", err))
 	}

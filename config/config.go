@@ -8,11 +8,10 @@ import (
 
 type (
 	Config struct {
-		App     App
-		HTTP    HTTP
-		Log     Log
-		Swagger Swagger
-		PG      PG
+		App  App
+		HTTP HTTP
+		Log  Log
+		PG   PG
 	}
 
 	App struct {
@@ -29,13 +28,9 @@ type (
 		Level string `env:"LOG_LEVEL,required"`
 	}
 
-	Swagger struct {
-		Enabled bool `env:"SWAGGER_ENABLED" envDefault:"false"`
-	}
-
 	PG struct {
 		PoolMax int    `env:"PG_POOL_MAX,required"`
-		URL     string `env:"PG_URL,required"`
+		Conn    string `env:"POSTGRES_CONN,required"`
 	}
 )
 
