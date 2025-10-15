@@ -1,18 +1,18 @@
 version: "3.9"
 
-app-env: &app-env
-  PG_POOL_MAX: "${PG_POOL_MAX}"
-  POSTGRES_CONN: "${POSTGRES_CONN}"
-  LOG_LEVEL: "${LOG_LEVEL}"
-  HTTP_PORT: "${HTTP_PORT}"
-  HTTP_USE_PREFORK_MODE: "${HTTP_USE_PREFORK_MODE}"
+# .app-env: &app-env
+#   PG_POOL_MAX: "${PG_POOL_MAX}"
+#   POSTGRES_CONN: "${POSTGRES_CONN}"
+#   LOG_LEVEL: "${LOG_LEVEL}"
+#   HTTP_PORT: "${HTTP_PORT}"
+#   HTTP_USE_PREFORK_MODE: "${HTTP_USE_PREFORK_MODE}"
 
-db-env: &db-env
-  POSTGRES_HOST: ${POSTGRES_HOST}
-  POSTGRES_PORT: ${POSTGRES_PORT}
-  POSTGRES_USER: ${POSTGRES_USERNAME}
-  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-  POSTGRES_DB: ${POSTGRES_DATABASE}
+# .db-env: &db-env
+#   POSTGRES_HOST: ${POSTGRES_HOST}
+#   POSTGRES_PORT: ${POSTGRES_PORT}
+#   POSTGRES_USER: ${POSTGRES_USERNAME}
+#   POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+#   POSTGRES_DB: ${POSTGRES_DATABASE}
 
 services:
   go_server:
@@ -20,7 +20,14 @@ services:
       context: .
       dockerfile: Dockerfile
     environment:
-      <<: *app-env
+      # <<: *app-env
+      APP_NAME: "${APP_NAME}"
+      APP_VERSION: "${APP_VERSION}"
+      PG_POOL_MAX: "${PG_POOL_MAX}"
+      POSTGRES_CONN: "${POSTGRES_CONN}"
+      LOG_LEVEL: "${LOG_LEVEL}"
+      HTTP_PORT: "${HTTP_PORT}"
+      HTTP_USE_PREFORK_MODE: "${HTTP_USE_PREFORK_MODE}"
     image: go_app
     container_name: "server"
     ports:
@@ -37,7 +44,12 @@ services:
     ports:
       - "${POSTGRES_PORT}:${POSTGRES_PORT}"
     environment:
-      <<: *db-env
+      # <<: *db-env
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_USER: ${POSTGRES_USERNAME}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DATABASE}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
