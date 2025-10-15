@@ -1,22 +1,19 @@
-# Step 1: Modules caching
-FROM golang:1.24.4-alpine3.21 as modules
-
-COPY go.mod go.sum /modules/
-WORKDIR /modules
+# DEPENDENCIES
+FROM golang:1.24.4-alpine3.21 AS builder
+WORKDIR /app
+COPY go.mod go.sum ./
 RUN go mod download
 
-# Step 2: Builder
-FROM golang:1.24.4-alpine3.21 as builder 
+# SOURCE CODE
+COPY . ./
+RUN go build -o bin/app cmd/app/main.go
 
-COPY --from=modules /go/pkg /go/pkg
-COPY . /app
-WORKDIR /app
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-    go build -tags migrate -o /bin/app ./cmd/app
-
-# Step 3: Final
-FROM scratch
+# FINAL STAGE
+FROM alpine AS final
 COPY --from=builder /app/config /config
-COPY --from=builder /bin/app /app
-# COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=builder /app/migrations /migrations
+COPY --from=builder /app/bin/app /app
+COPY --from=builder /app/.env /.env
+# RUN mkdir logs
+EXPOSE 8080
 CMD ["/app"]
