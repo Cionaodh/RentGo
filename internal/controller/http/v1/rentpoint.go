@@ -57,7 +57,20 @@ func (r *rentPointRoutes) create(ctx *fiber.Ctx) error {
 		return errorResponse(ctx, http.StatusInternalServerError, "rentpoint service problems")
 	}
 
-	return ctx.Status(http.StatusCreated).JSON(point)
+	type response struct {
+		Id   uuid.UUID `json:"id"`
+		Name string    `json:"name"`
+		Addr string    `json:"arrd"`
+	}
+
+	p := response{
+		Id:   point.ID,
+		Name: point.Name,
+		Addr: point.ID.String(),
+	}
+
+	// return ctx.Status(http.StatusCreated).JSON(point)
+	return ctx.Status(http.StatusCreated).JSON(p)
 }
 
 func (r *rentPointRoutes) getAll(ctx *fiber.Ctx) error {

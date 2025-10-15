@@ -24,11 +24,9 @@ func NewRentpointRepo(pg *postgres.Postgres) *RentpointRepo {
 // Create - Создание новой точки проката.
 func (r *RentpointRepo) Create(ctx context.Context, rp rp.CreateRentpointInput) (entity.RentPoint, error) {
 	sql := `
-		INSERT INTO rent_points 
-			(name, addr)
-		VALUES 
-			($1, $2)
-		RETURNING *
+		INSERT INTO rentpoint (name, addr)
+		VALUES ($1, $2)
+		RETURNING *;
 	`
 
 	rows, err := r.Pool.Query(ctx, sql,
@@ -60,9 +58,7 @@ func (r *RentpointRepo) Create(ctx context.Context, rp rp.CreateRentpointInput) 
 func (r *RentpointRepo) GetAll(ctx context.Context) ([]entity.RentPoint, error) {
 	sql := `
 		SELECT id, name, addr
-		FROM rent_points
-		ORDER BY name
-	`
+		FROM rentpoint`
 
 	rows, err := r.Pool.Query(ctx, sql)
 	if err != nil {
@@ -89,27 +85,28 @@ func (r *RentpointRepo) GetAll(ctx context.Context) ([]entity.RentPoint, error) 
 
 // GetByID - Получение точки проката по id (со списком продуктов).
 func (r *RentpointRepo) GetByID(ctx context.Context, id uuid.UUID) (entity.RentPoint, error) {
-	// Получаем основную информацию о точке проката
-	sql := `
-		SELECT id, name, addr
-		FROM rent_points
-		WHERE id = $1
-	`
+	// // Получаем основную информацию о точке проката
+	// sql := `
+	// 	SELECT id, name, addr
+	// 	FROM rent_points
+	// 	WHERE id = $1
+	// `
 
-	var rp entity.RentPoint
-	err := r.Pool.QueryRow(ctx, sql, id).Scan(&rp.ID, &rp.Name, &rp.Addr)
-	if err != nil {
-		return entity.RentPoint{}, fmt.Errorf("RentpointRepo - GetByID - r.Pool.QueryRow: %w", err)
-	}
+	// var rp entity.RentPoint
+	// err := r.Pool.QueryRow(ctx, sql, id).Scan(&rp.ID, &rp.Name, &rp.Addr)
+	// if err != nil {
+	// 	return entity.RentPoint{}, fmt.Errorf("RentpointRepo - GetByID - r.Pool.QueryRow: %w", err)
+	// }
 
-	// Получаем список продуктов, привязанных к точке проката
-	products, err := r.getPointProducts(ctx, id)
-	if err != nil {
-		return entity.RentPoint{}, fmt.Errorf("RentpointRepo - GetByID - getPointProducts: %w", err)
-	}
+	// // Получаем список продуктов, привязанных к точке проката
+	// products, err := r.getPointProducts(ctx, id)
+	// if err != nil {
+	// 	return entity.RentPoint{}, fmt.Errorf("RentpointRepo - GetByID - getPointProducts: %w", err)
+	// }
 
-	rp.Products = products
-	return rp, nil
+	// // rp.Products = products
+	// return rp, nil
+	return entity.RentPoint{}, nil
 }
 
 // Delete - Удаление точки проката.

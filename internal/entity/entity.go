@@ -5,10 +5,10 @@ import (
 )
 
 type RentPoint struct {
-	ID       uuid.UUID
-	Name     string
-	Addr     string
-	Products []uuid.UUID
+	ID   uuid.UUID `db:"id"`
+	Name string    `db:"name"`
+	Addr string    `db:"addr"`
+	// Products []uuid.UUID
 	// TODO: Координаты (45.63545 74.54345)
 }
 
