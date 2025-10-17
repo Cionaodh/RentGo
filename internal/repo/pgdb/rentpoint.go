@@ -58,7 +58,7 @@ func (r *RentpointRepo) Create(ctx context.Context, rp rp.CreateRentpointInput) 
 func (r *RentpointRepo) GetAll(ctx context.Context) ([]entity.RentPoint, error) {
 	sql := `
 		SELECT id, name, addr
-		FROM rentpoint`
+		FROM rentpoint;`
 
 	rows, err := r.Pool.Query(ctx, sql)
 	if err != nil {

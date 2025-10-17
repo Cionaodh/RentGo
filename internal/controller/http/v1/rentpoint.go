@@ -12,9 +12,9 @@ import (
 
 // Controller - контроллер домена RentPoint API v1
 type rentPointRoutes struct {
-	rp usecase.RentPoint
-	l  logger.Interface
-	v  *validator.Validate
+	pointUsecase usecase.RentPoint
+	l            logger.Interface
+	v            *validator.Validate
 }
 
 func newRentPointRoutes(rp usecase.RentPoint, l logger.Interface, v *validator.Validate) *rentPointRoutes {
@@ -45,7 +45,7 @@ func (r *rentPointRoutes) create(ctx *fiber.Ctx) error {
 		return errorResponse(ctx, http.StatusBadRequest, "invalid request body")
 	}
 
-	point, err := r.rp.CreateRentpoint(
+	point, err := r.pointUsecase.CreateRentpoint(
 		ctx.UserContext(),
 		usecase.CreateRentpointInput{
 			Name: body.Name,
@@ -60,7 +60,7 @@ func (r *rentPointRoutes) create(ctx *fiber.Ctx) error {
 	type response struct {
 		Id   uuid.UUID `json:"id"`
 		Name string    `json:"name"`
-		Addr string    `json:"arrd"`
+		Addr string    `json:"addr"`
 	}
 
 	p := response{
@@ -74,13 +74,28 @@ func (r *rentPointRoutes) create(ctx *fiber.Ctx) error {
 }
 
 func (r *rentPointRoutes) getAll(ctx *fiber.Ctx) error {
-	points, err := r.rp.GetAll(ctx.UserContext())
+	points, err := r.pointUsecase.GetAll(ctx.UserContext())
 	if err != nil {
 		r.l.Error(err, "http - v1 - getAll")
 		return errorResponse(ctx, http.StatusInternalServerError, "failed to get rent points")
 	}
 
-	return ctx.Status(http.StatusOK).JSON(points)
+	type response struct {
+		Id   uuid.UUID `json:"id"`
+		Name string    `json:"name"`
+		Addr string    `json:"addr"`
+	}
+
+	ps := make([]response, len(points))
+	for _, point := range points {
+		ps = append(ps, response{
+			Id:   point.ID,
+			Name: point.Name,
+			Addr: point.Addr,
+		})
+	}
+
+	return ctx.Status(http.StatusOK).JSON(ps)
 }
 
 func (r *rentPointRoutes) getByID(ctx *fiber.Ctx) error {
@@ -90,7 +105,7 @@ func (r *rentPointRoutes) getByID(ctx *fiber.Ctx) error {
 		return errorResponse(ctx, http.StatusBadRequest, "invalid rentpoint ID format")
 	}
 
-	point, err := r.rp.GetByID(ctx.UserContext(), id)
+	point, err := r.pointUsecase.GetByID(ctx.UserContext(), id)
 	if err != nil {
 		// if err.Error() == "точка проката с ID "+id.String()+" не найдена" {
 		// 	return errorResponse(ctx, http.StatusNotFound, "rentpoint not found")

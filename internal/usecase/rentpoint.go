@@ -11,19 +11,21 @@ import (
 )
 
 type RentPointUsecase struct {
-	repo repo.RentPoint
+	pointRepo   repo.RentPoint
+	productRepo repo.Product
 }
 
-func NewRentPointUsecase(rp repo.RentPoint) *RentPointUsecase {
+func NewRentPointUsecase(rp repo.RentPoint, p repo.Product) *RentPointUsecase {
 	return &RentPointUsecase{
-		repo: rp,
+		pointRepo:   rp,
+		productRepo: p,
 	}
 }
 
 func (rp *RentPointUsecase) CreateRentpoint(ctx context.Context, in CreateRentpointInput) (entity.RentPoint, error) {
 	// point.ID = uuid.New()
 
-	point, err := rp.repo.Create(ctx, repotype.CreateRentpointInput{
+	point, err := rp.pointRepo.Create(ctx, repotype.CreateRentpointInput{
 		Name: in.Name,
 		Addr: in.Addr,
 	})
@@ -35,7 +37,7 @@ func (rp *RentPointUsecase) CreateRentpoint(ctx context.Context, in CreateRentpo
 }
 
 func (rp *RentPointUsecase) GetAll(ctx context.Context) ([]entity.RentPoint, error) {
-	rentPoints, err := rp.repo.GetAll(ctx)
+	rentPoints, err := rp.pointRepo.GetAll(ctx)
 	if err != nil {
 		return []entity.RentPoint{}, fmt.Errorf("RentPointUseCase - GetAll - rp.repo.GetAll: %w", err)
 	}
@@ -46,7 +48,7 @@ func (rp *RentPointUsecase) GetAll(ctx context.Context) ([]entity.RentPoint, err
 // Возвращает все данные о точке проката. И все подукты, которые принадлежат точке проката (вызывает getProducts)
 func (rp *RentPointUsecase) GetByID(ctx context.Context, id uuid.UUID) (entity.RentPoint, error) {
 
-	point, err := rp.repo.GetByID(ctx, id)
+	point, err := rp.pointRepo.GetByID(ctx, id)
 	if err != nil {
 		return entity.RentPoint{}, fmt.Errorf("RentPointUseCase - GetByID - rp.repo.GetByDI: %w", err)
 	}

@@ -54,7 +54,7 @@ type UsecaseDependencies struct {
 
 func NewUsecase(d UsecaseDependencies) *Usecases {
 	return &Usecases{
-		RentPoint: NewRentPointUsecase(d.Repos.RentPoint),
+		RentPoint: NewRentPointUsecase(d.Repos.RentPoint, d.Repos.Product),
 		Template:  NewTeplateProductUsecase(d.Repos.TemplateProduct),
 		Product:   NewProductUsecase(d.Repos.Product),
 	}
