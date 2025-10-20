@@ -6,6 +6,7 @@ import (
 	repotype "EasyRentGo/internal/repo/repotypes"
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/google/uuid"
 )
@@ -21,7 +22,7 @@ func NewTeplateProductUsecase(r repo.TemplateProduct) *TeplateProductUsecase {
 }
 
 func (uc *TeplateProductUsecase) Create(ctx context.Context, t CreateTemplateInput) (entity.ProductTemp, error) {
-	// Валидация входных данных
+	// Проверка входных данных
 	if t.Name == "" {
 		return entity.ProductTemp{}, errors.New("invalid template name")
 	}
@@ -35,7 +36,7 @@ func (uc *TeplateProductUsecase) Create(ctx context.Context, t CreateTemplateInp
 		Price:       t.Price,
 	})
 	if err != nil {
-		return entity.ProductTemp{}, err
+		return entity.ProductTemp{}, fmt.Errorf("TeplateProductUsecase - Create - uc.repo.Create: %w", err)
 	}
 
 	return temp, nil
