@@ -8,7 +8,14 @@ type RentPoint struct {
 	ID   uuid.UUID `db:"id"`
 	Name string    `db:"name"`
 	Addr string    `db:"addr"`
-	// Products []uuid.UUID
+	// TODO: Координаты (45.63545 74.54345)
+}
+
+type ProductRentPoint struct {
+	ID       uuid.UUID `db:"id"`
+	Name     string    `db:"name"`
+	Addr     string    `db:"addr"`
+	Products []Product `db:"product"`
 	// TODO: Координаты (45.63545 74.54345)
 }
 
