@@ -84,7 +84,6 @@ func (db *DBRentPoint) GetByID(ctx context.Context, id uuid.UUID) (entity.RentPo
 		ID:   rp.id,
 		Name: rp.name,
 		Addr: rp.addr,
-		// Products: rp.Products, // TODO: добавить
 	}, nil
 
 	// return entity.RentPoint{}, fmt.Errorf("точка проката с ID %s не найдена", id)

@@ -23,7 +23,7 @@ type ProductTemp struct {
 	ID          uuid.UUID `db:"id"`
 	Name        string    `db:"name"`
 	Description string    `db:"description"`
-	Price       int       `db:"price"`
+	Price       float64   `db:"price"`
 }
 
 type ProductStatus string

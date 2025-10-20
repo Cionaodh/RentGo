@@ -105,7 +105,6 @@ func (p *ProductUsecase) Delete(context.Context, uuid.UUID) error {
 // 	// // Получаем объект точки проката
 // 	// // Вызываем фукнцию добавления продукта в хранилще продуктов Пункта проката
 //
-// 	// // TODO: как полчить доступ к домену Пункта проката в бизнес слое?
 //
 // 	// return entity.Product, nil
 // 	return entity.Product{}, nil

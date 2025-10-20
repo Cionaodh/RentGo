@@ -24,9 +24,9 @@ func newTemplateRoutes(temp usecase.Template, l logger.Interface, v *validator.V
 // Обработчики маршрутов
 
 type TemplateDTO struct {
-	Name        string `json:"name" validate:"required" example:"Велосипед 1"`
-	Description string `json:"descriptiont" example:"Описание продукта"`
-	Price       int    `json:"price" validate:"required" example:"800"`
+	Name        string  `json:"name" validate:"required" example:"Велосипед 1"`
+	Description string  `json:"description" example:"Описание продукта"`
+	Price       float64 `json:"price" validate:"required" example:"800"`
 }
 
 func (r *templateRoutes) create(ctx *fiber.Ctx) error {
@@ -64,7 +64,7 @@ func (r *templateRoutes) create(ctx *fiber.Ctx) error {
 		ID          uuid.UUID `json:"id"`
 		Name        string    `json:"name"`
 		Description string    `json:"desc"`
-		Price       int       `json:"price"`
+		Price       float64   `json:"price"`
 	}
 
 	template := response{

@@ -12,7 +12,7 @@ type template struct {
 	id          uuid.UUID
 	name        string
 	description string
-	price       int
+	price       float64
 }
 
 // var _ repo.ProductTempRepo = (*DBTemplate)(nil)

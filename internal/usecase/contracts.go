@@ -24,7 +24,7 @@ type RentPoint interface {
 type CreateTemplateInput struct {
 	Name        string
 	Description string
-	Price       int
+	Price       float64
 }
 
 type Template interface {
