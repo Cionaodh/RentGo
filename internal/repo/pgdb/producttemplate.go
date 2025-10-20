@@ -24,7 +24,7 @@ func (pt *ProductTemplateRepo) Create(ctx context.Context, temp rp.CreateTemplat
 	// (имя, описание, Цену)
 
 	sql := `
-		INSERT INTO template (name, description, price)
+		INSERT INTO templates (name, description, price)
 		VALUES ($1, $2, $3)
 		RETURNING *;
 	`
