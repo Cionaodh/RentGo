@@ -86,17 +86,17 @@ func (r *RentpointRepo) GetAll(ctx context.Context) ([]entity.RentPoint, error) 
 // GetByID - Получение точки проката по id (со списком продуктов).
 func (r *RentpointRepo) GetByID(ctx context.Context, id uuid.UUID) (entity.RentPoint, error) {
 	// // Получаем основную информацию о точке проката
-	// sql := `
-	// 	SELECT id, name, addr
-	// 	FROM rent_points
-	// 	WHERE id = $1
-	// `
+	sql := `
+		SELECT id, name, addr
+		FROM rentpoint
+		WHERE id = $1
+	`
 
-	// var rp entity.RentPoint
-	// err := r.Pool.QueryRow(ctx, sql, id).Scan(&rp.ID, &rp.Name, &rp.Addr)
-	// if err != nil {
-	// 	return entity.RentPoint{}, fmt.Errorf("RentpointRepo - GetByID - r.Pool.QueryRow: %w", err)
-	// }
+	var rp entity.RentPoint
+	err := r.Pool.QueryRow(ctx, sql, id).Scan(&rp.ID, &rp.Name, &rp.Addr)
+	if err != nil {
+		return entity.RentPoint{}, fmt.Errorf("RentpointRepo - GetByID - r.Pool.QueryRow: %w", err)
+	}
 
 	// // Получаем список продуктов, привязанных к точке проката
 	// products, err := r.getPointProducts(ctx, id)
@@ -106,7 +106,7 @@ func (r *RentpointRepo) GetByID(ctx context.Context, id uuid.UUID) (entity.RentP
 
 	// // rp.Products = products
 	// return rp, nil
-	return entity.RentPoint{}, nil
+	return rp, nil
 }
 
 // Delete - Удаление точки проката.

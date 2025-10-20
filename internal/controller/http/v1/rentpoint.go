@@ -86,7 +86,7 @@ func (r *rentPointRoutes) getAll(ctx *fiber.Ctx) error {
 		Addr string    `json:"addr"`
 	}
 
-	ps := make([]response, len(points))
+	ps := make([]response, 0, len(points))
 	for _, point := range points {
 		ps = append(ps, response{
 			Id:   point.ID,
@@ -98,6 +98,7 @@ func (r *rentPointRoutes) getAll(ctx *fiber.Ctx) error {
 	return ctx.Status(http.StatusOK).JSON(ps)
 }
 
+// Get - с id --> структура с данными о точке проката и всех её продуктах
 func (r *rentPointRoutes) getByID(ctx *fiber.Ctx) error {
 	id, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
@@ -114,5 +115,21 @@ func (r *rentPointRoutes) getByID(ctx *fiber.Ctx) error {
 		return errorResponse(ctx, http.StatusInternalServerError, "failed to get rent point")
 	}
 
-	return ctx.Status(http.StatusOK).JSON(point)
+	type response struct {
+		Id   uuid.UUID `json:"id"`
+		Name string    `json:"name"`
+		Addr string    `json:"addr"`
+		// products []struct {
+		// 	ID         uuid.UUID `json:"id"`
+		// 	TemplateID uuid.UUID `json:"template"` // TODO: подтянуть данные из шаблона
+		// }
+	}
+
+	p := response{
+		Id:   point.ID,
+		Name: point.Name,
+		Addr: point.Addr,
+	}
+
+	return ctx.Status(http.StatusOK).JSON(p)
 }

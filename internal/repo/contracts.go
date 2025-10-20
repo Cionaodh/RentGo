@@ -28,6 +28,7 @@ type Product interface {
 	Create(context.Context, entity.Product) error
 	GetAll(context.Context) ([]entity.Product, error)
 	GetByID(context.Context, uuid.UUID) (entity.Product, error)
+	GetProductsByRentpoint(context.Context, uuid.UUID) ([]entity.Product, error)
 
 	// GetByStatus(context.Context, entity.ProductStatus) ([]entity.Product, error)
 	// SetStatus(context.Context, uuid.UUID, entity.ProductStatus) error
