@@ -19,7 +19,7 @@ type RentPoint interface {
 }
 
 type TemplateProduct interface {
-	Create(context.Context, entity.ProductTemp) error
+	Create(context.Context, rp.CreateTemplateInput) (entity.ProductTemp, error)
 	GetAll(context.Context) ([]entity.ProductTemp, error)
 	GetByID(context.Context, uuid.UUID) (entity.ProductTemp, error)
 }

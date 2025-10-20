@@ -2,6 +2,7 @@ package pgdb
 
 import (
 	"EasyRentGo/internal/entity"
+	repotype "EasyRentGo/internal/repo/repotypes"
 	"EasyRentGo/pkg/postgres"
 	"context"
 
@@ -16,8 +17,8 @@ func NewProductTemplateRepo(pg *postgres.Postgres) *ProductTemplateRepo {
 	return &ProductTemplateRepo{pg}
 }
 
-func (pt *ProductTemplateRepo) Create(context.Context, entity.ProductTemp) error {
-	return nil
+func (pt *ProductTemplateRepo) Create(context.Context, repotype.CreateTemplateInput) (entity.ProductTemp, error) {
+	return entity.ProductTemp{}, nil
 }
 
 func (pt *ProductTemplateRepo) GetAll(context.Context) ([]entity.ProductTemp, error) {

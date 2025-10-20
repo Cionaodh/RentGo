@@ -21,8 +21,14 @@ type RentPoint interface {
 	// AddProduct(context.Context, uuid.UUID, uuid.UUID)
 }
 
+type CreateTemplateInput struct {
+	Name        string
+	Description string
+	Price       int
+}
+
 type Template interface {
-	Create(context.Context, entity.ProductTemp) (entity.ProductTemp, error)
+	Create(context.Context, CreateTemplateInput) (entity.ProductTemp, error)
 	GetAll(context.Context) ([]entity.ProductTemp, error)
 	GetByID(context.Context, uuid.UUID) (entity.ProductTemp, error)
 }

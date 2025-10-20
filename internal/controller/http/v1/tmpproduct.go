@@ -1,7 +1,6 @@
 package v1
 
 import (
-	"EasyRentGo/internal/entity"
 	"EasyRentGo/internal/usecase"
 	"EasyRentGo/pkg/logger"
 	"net/http"
@@ -13,13 +12,13 @@ import (
 
 // Controller - контроллер домена ProductTemplate API v1
 type templateRoutes struct {
-	tmp usecase.Template
-	l   logger.Interface
-	v   *validator.Validate
+	temp usecase.Template
+	l    logger.Interface
+	v    *validator.Validate
 }
 
-func newTemplateRoutes(tmp usecase.Template, l logger.Interface, v *validator.Validate) *templateRoutes {
-	return &templateRoutes{tmp, l, v}
+func newTemplateRoutes(temp usecase.Template, l logger.Interface, v *validator.Validate) *templateRoutes {
+	return &templateRoutes{temp, l, v}
 }
 
 // Обработчики маршрутов
@@ -48,9 +47,9 @@ func (r *templateRoutes) create(ctx *fiber.Ctx) error {
 		return errorResponse(ctx, http.StatusBadRequest, "invalid request body")
 	}
 
-	res, err := r.tmp.Create(
+	temp, err := r.temp.Create(
 		ctx.UserContext(),
-		entity.ProductTemp{
+		usecase.CreateTemplateInput{
 			Name:        body.Name,
 			Description: body.Description,
 			Price:       body.Price,
@@ -58,15 +57,29 @@ func (r *templateRoutes) create(ctx *fiber.Ctx) error {
 	)
 	if err != nil {
 		r.l.Error(err, "http - v1 - create")
-		return errorResponse(ctx, http.StatusInternalServerError, "rentpoint service problems")
+		return errorResponse(ctx, http.StatusInternalServerError, "template service problems")
 	}
 
-	return ctx.Status(http.StatusCreated).JSON(res)
+	type response struct {
+		ID          uuid.UUID `json:"id"`
+		Name        string    `json:"name"`
+		Description string    `json:"desc"`
+		Price       int       `json:"price"`
+	}
+
+	template := response{
+		ID:          temp.ID,
+		Name:        temp.Name,
+		Description: temp.Description,
+		Price:       temp.Price,
+	}
+
+	return ctx.Status(http.StatusCreated).JSON(template)
 }
 
 func (r *templateRoutes) getAll(ctx *fiber.Ctx) error {
 	// points, err := r.rp.GetAll(ctx.UserContext())
-	res, err := r.tmp.GetAll(ctx.UserContext())
+	res, err := r.temp.GetAll(ctx.UserContext())
 	if err != nil {
 		r.l.Error(err, "http - v1 - getAll")
 		return errorResponse(ctx, http.StatusInternalServerError, "failed to get rent points")
@@ -82,7 +95,7 @@ func (r *templateRoutes) getByID(ctx *fiber.Ctx) error {
 		return errorResponse(ctx, http.StatusBadRequest, "invalid rentpoint ID format")
 	}
 
-	point, err := r.tmp.GetByID(ctx.UserContext(), id)
+	point, err := r.temp.GetByID(ctx.UserContext(), id)
 	if err != nil {
 		// if err.Error() == "Product template by ID "+id.String()+" not found" {
 		// 	return errorResponse(ctx, http.StatusNotFound, "rentpoint not found")

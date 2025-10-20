@@ -3,6 +3,7 @@ package usecase
 import (
 	"EasyRentGo/internal/entity"
 	"EasyRentGo/internal/repo"
+	repotype "EasyRentGo/internal/repo/repotypes"
 	"context"
 	"errors"
 
@@ -19,7 +20,7 @@ func NewTeplateProductUsecase(r repo.TemplateProduct) *TeplateProductUsecase {
 	}
 }
 
-func (uc *TeplateProductUsecase) Create(ctx context.Context, t entity.ProductTemp) (entity.ProductTemp, error) {
+func (uc *TeplateProductUsecase) Create(ctx context.Context, t CreateTemplateInput) (entity.ProductTemp, error) {
 	// Валидация входных данных
 	if t.Name == "" {
 		return entity.ProductTemp{}, errors.New("invalid template name")
@@ -28,15 +29,16 @@ func (uc *TeplateProductUsecase) Create(ctx context.Context, t entity.ProductTem
 		return entity.ProductTemp{}, errors.New("invalid template price")
 	}
 
-	// Create UUID
-	t.ID = uuid.New()
-
-	err := uc.repo.Create(ctx, t)
+	temp, err := uc.repo.Create(ctx, repotype.CreateTemplateInput{
+		Name:        t.Name,
+		Description: t.Description,
+		Price:       t.Price,
+	})
 	if err != nil {
 		return entity.ProductTemp{}, err
 	}
 
-	return t, nil
+	return temp, nil
 }
 
 func (uc *TeplateProductUsecase) GetAll(ctx context.Context) ([]entity.ProductTemp, error) {

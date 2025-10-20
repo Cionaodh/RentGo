@@ -20,10 +20,10 @@ type ProductRentPoint struct {
 }
 
 type ProductTemp struct {
-	ID          uuid.UUID
-	Name        string
-	Description string
-	Price       int
+	ID          uuid.UUID `db:"id"`
+	Name        string    `db:"name"`
+	Description string    `db:"description"`
+	Price       int       `db:"price"`
 }
 
 type ProductStatus string
