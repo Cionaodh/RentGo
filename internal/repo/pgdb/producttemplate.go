@@ -8,7 +8,6 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 )
 
 type ProductTemplateRepo struct {
@@ -20,34 +19,68 @@ func NewProductTemplateRepo(pg *postgres.Postgres) *ProductTemplateRepo {
 }
 
 func (pt *ProductTemplateRepo) Create(ctx context.Context, temp rp.CreateTemplateInput) (entity.ProductTemp, error) {
-	// Добавить строку, которая содержит
-	// (имя, описание, Цену)
-
 	sql := `
 		INSERT INTO templates (name, description, price)
 		VALUES ($1, $2, $3)
-		RETURNING *;
+		RETURNING id, name, description, price;
 	`
 
-	rows, err := pt.Pool.Query(ctx, sql,
+	var template entity.ProductTemp
+	if err := pt.Pool.QueryRow(ctx, sql,
 		temp.Name,
 		temp.Description,
 		temp.Price,
-	)
-	if err != nil {
-		return entity.ProductTemp{}, fmt.Errorf("ProductTemplateRepo - Create - pt.Pool.Query: %w", err)
+	).Scan(
+		&template.ID,
+		&template.Name,
+		&template.Description,
+		&template.Price,
+	); err != nil {
+		return entity.ProductTemp{}, fmt.Errorf("ProductTemplateRepo - Create - pt.Pool.QueryRow: %w", err)
 	}
 
-	template, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[entity.ProductTemp])
-	if err != nil {
-		return entity.ProductTemp{}, fmt.Errorf("ProductTemplateRepo - Create - pgx.CollectExactlyOneRow: %w", err)
-	}
+	// rows, err := pt.Pool.Query(ctx, sql,
+	// 	temp.Name,
+	// 	temp.Description,
+	// 	temp.Price,
+	// )
+	// if err != nil {
+	// 	return entity.ProductTemp{}, fmt.Errorf("ProductTemplateRepo - Create - pt.Pool.Query: %w", err)
+	// }
+
+	// template, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[entity.ProductTemp])
+	// if err != nil {
+	// 	return entity.ProductTemp{}, fmt.Errorf("ProductTemplateRepo - Create - pgx.CollectExactlyOneRow: %w", err)
+	// }
 
 	return template, nil
 }
 
-func (pt *ProductTemplateRepo) GetAll(context.Context) ([]entity.ProductTemp, error) {
-	return []entity.ProductTemp{}, nil
+func (pt *ProductTemplateRepo) GetAll(ctx context.Context) ([]entity.ProductTemp, error) {
+	sql := `
+		SELECT * 
+		FROM templates;`
+
+	rows, err := pt.Pool.Query(ctx, sql)
+	if err != nil {
+		return nil, fmt.Errorf("ProductTemplateRepo - GetAll - pt.Pool.Query: %w", err)
+	}
+	defer rows.Close()
+
+	var templates []entity.ProductTemp
+	for rows.Next() {
+		var temp entity.ProductTemp
+		err := rows.Scan(&temp.ID, &temp.Name, &temp.Description, &temp.Price)
+		if err != nil {
+			return nil, fmt.Errorf("ProductTemplateRepo - GetAll - rows.Scan: %w", err)
+		}
+		templates = append(templates, temp)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("ProductTemplateRepo - GetAll - rows.Err: %w", err)
+	}
+
+	return templates, nil
 }
 
 func (pt *ProductTemplateRepo) GetByID(context.Context, uuid.UUID) (entity.ProductTemp, error) {

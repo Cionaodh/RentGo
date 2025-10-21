@@ -26,7 +26,7 @@ func (r *RentpointRepo) Create(ctx context.Context, rp rp.CreateRentpointInput) 
 	sql := `
 		INSERT INTO rentpoint (name, addr)
 		VALUES ($1, $2)
-		RETURNING *;
+		RETURNING id, name, addr;
 	`
 
 	rows, err := r.Pool.Query(ctx, sql,
@@ -42,14 +42,6 @@ func (r *RentpointRepo) Create(ctx context.Context, rp rp.CreateRentpointInput) 
 	if err != nil {
 		return entity.RentPoint{}, fmt.Errorf("pgdb.RentPoint - Create - pgx.CollectExactlyOneRow: %w", err)
 	}
-
-	// // Если есть привязанные продукты, обновляем их связь с точкой проката
-	// if len(rp.Products) > 0 {
-	// 	err = r.updatePointProducts(ctx, rp.ID, rp.Products)
-	// 	if err != nil {
-	// 		return fmt.Errorf("RentpointRepo - Create - updatePointProducts: %w", err)
-	// 	}
-	// }
 
 	return point, nil
 }
@@ -75,7 +67,6 @@ func (r *RentpointRepo) GetAll(ctx context.Context) ([]entity.RentPoint, error) 
 		}
 		rentPoints = append(rentPoints, rp)
 	}
-
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("RentpointRepo - GetAll - rows.Err: %w", err)
 	}
