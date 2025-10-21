@@ -78,14 +78,30 @@ func (r *templateRoutes) create(ctx *fiber.Ctx) error {
 }
 
 func (r *templateRoutes) getAll(ctx *fiber.Ctx) error {
-	// points, err := r.rp.GetAll(ctx.UserContext())
 	res, err := r.temp.GetAll(ctx.UserContext())
 	if err != nil {
 		r.l.Error(err, "http - v1 - getAll")
-		return errorResponse(ctx, http.StatusInternalServerError, "failed to get rent points")
+		return errorResponse(ctx, http.StatusInternalServerError, "failed to get all templates")
 	}
 
-	return ctx.Status(http.StatusOK).JSON(res)
+	type response struct {
+		ID          uuid.UUID `json:"id"`
+		Name        string    `json:"name"`
+		Description string    `json:"desc"`
+		Price       float64   `json:"price"`
+	}
+
+	templates := make([]response, 0, len(res))
+	for _, t := range res {
+		templates = append(templates, response{
+			ID:          t.ID,
+			Name:        t.Name,
+			Description: t.Description,
+			Price:       t.Price,
+		})
+	}
+
+	return ctx.Status(http.StatusOK).JSON(templates)
 }
 
 func (r *templateRoutes) getByID(ctx *fiber.Ctx) error {
