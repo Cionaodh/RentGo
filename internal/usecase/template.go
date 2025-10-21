@@ -45,7 +45,7 @@ func (uc *TeplateProductUsecase) Create(ctx context.Context, t CreateTemplateInp
 func (uc *TeplateProductUsecase) GetAll(ctx context.Context) ([]entity.ProductTemp, error) {
 	templates, err := uc.repo.GetAll(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("TeplateProductUsecase - GetAll - uc.repo.GetAll: %w", err)
 	}
 
 	if len(templates) == 0 {
