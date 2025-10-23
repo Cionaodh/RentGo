@@ -12,10 +12,10 @@ type RentPoint struct {
 }
 
 type ProductRentPoint struct {
-	ID       uuid.UUID `db:"id"`
-	Name     string    `db:"name"`
-	Addr     string    `db:"addr"`
-	Products []Product `db:"product"`
+	ID       uuid.UUID  `db:"id"`
+	Name     string     `db:"name"`
+	Addr     string     `db:"addr"`
+	Products []Products `db:"product"`
 	// TODO: Координаты (45.63545 74.54345)
 }
 
@@ -29,17 +29,24 @@ type ProductTemp struct {
 type ProductStatus string
 
 const (
-	StatusUnused   ProductStatus = "unused"
-	StatusFree     ProductStatus = "free"
-	StatusReserved ProductStatus = "reserved"
-	StatusRented   ProductStatus = "rented"
+	StatusUnused   ProductStatus = "Unused"
+	StatusFree     ProductStatus = "Free"
+	StatusReserved ProductStatus = "Reserved"
+	StatusRented   ProductStatus = "Rented"
 )
 
+type Products struct {
+	TemplateID  uuid.UUID     `db:"template_id"`
+	RentPointID uuid.UUID     `db:"rentpoint_id"`
+	Status      ProductStatus `db:"status"`
+	IDs         uuid.UUIDs    `db:"ids"`
+}
+
 type Product struct {
-	ID          uuid.UUID
-	TemplateID  uuid.UUID
-	RentPointID uuid.UUID
-	Status      ProductStatus
+	ID          uuid.UUID     `db:"id"`
+	TemplateID  uuid.UUID     `db:"template_id"`
+	RentPointID uuid.UUID     `db:"rentpoint_id"`
+	Status      ProductStatus `db:"status"`
 }
 
 // // ParseProductStatus конвертирует строку в ProductStatus (с проверкой валидности).

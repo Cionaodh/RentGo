@@ -3,47 +3,66 @@ package usecase
 import (
 	"EasyRentGo/internal/entity"
 	"EasyRentGo/internal/repo"
+	repotype "EasyRentGo/internal/repo/repotypes"
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
 )
 
 type ProductUsecase struct {
-	repo repo.Product
+	productRepo  repo.Product
+	templateRepo repo.TemplateProduct
 }
 
-func NewProductUsecase(p repo.Product) *ProductUsecase {
-	return &ProductUsecase{p}
+func NewProductUsecase(p repo.Product, t repo.TemplateProduct) *ProductUsecase {
+	return &ProductUsecase{p, t}
 }
 
 //methods
 
-func (p *ProductUsecase) Create(ctx context.Context, idTmp uuid.UUID) (entity.Product, error) {
-	product := entity.Product{
-		ID:          uuid.New(),
-		TemplateID:  idTmp,
-		RentPointID: uuid.Nil, // default value
-		Status:      entity.StatusUnused,
+func (p *ProductUsecase) Create(ctx context.Context, in CreateProductInput) (entity.Products, error) {
+	// проверяем поле Number
+	if in.Number <= 0 || in.Number > 100000 {
+		return entity.Products{}, errors.New("invalid product number")
 	}
-	if err := p.repo.Create(ctx, product); err != nil {
-		return entity.Product{}, fmt.Errorf("%s", err)
+
+	product := repotype.CreateProductInput{
+		TemplateId: in.TemplateId,
+		Status:     entity.StatusUnused, // устанавливаем default status
+		Number:     in.Number,
 	}
-	return product, nil
+
+	products, err := p.productRepo.Create(ctx, product)
+	if err != nil {
+		return entity.Products{}, fmt.Errorf("ProductUsecase - Create - p.productRepo.Create: %w", err)
+	}
+
+	return products, nil
 }
 
-func (p *ProductUsecase) GetAll(ctx context.Context) ([]entity.Product, error) {
-	return p.repo.GetAll(ctx)
+func (p *ProductUsecase) GetAll(ctx context.Context) ([]entity.Products, error) {
+	products, err := p.productRepo.GetAll(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("ProductUsecase - GetAll - p.productRepo.GetAll: %w", err)
+	}
+
+	if len(products) == 0 {
+		return nil, errors.New("no products found")
+	}
+
+	return p.productRepo.GetAll(ctx)
 }
 
-func (p *ProductUsecase) GetByID(ctx context.Context, id uuid.UUID) (entity.Product, error) {
+func (p *ProductUsecase) GetByID(ctx context.Context, id uuid.UUID) (entity.Products, error) {
 	// // проверка uuid на корректность и преобразование
 	// if err := uuid.Validate(id); err != nil {
 	// 	return entity.Product{}, fmt.Errorf("%s", err)
 	// }
 
 	// return p.repo.GetByID(ctx, uuid.MustParse(id))
-	return entity.Product{}, nil
+	return entity.Products{}, nil
 }
 
 func (p *ProductUsecase) Delete(context.Context, uuid.UUID) error {

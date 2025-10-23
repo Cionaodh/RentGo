@@ -25,10 +25,10 @@ type TemplateProduct interface {
 }
 
 type Product interface {
-	Create(context.Context, entity.Product) error
-	GetAll(context.Context) ([]entity.Product, error)
-	GetByID(context.Context, uuid.UUID) (entity.Product, error)
-	GetProductsByRentpoint(context.Context, uuid.UUID) ([]entity.Product, error)
+	Create(context.Context, rp.CreateProductInput) (entity.Products, error)
+	GetAll(context.Context) ([]entity.Products, error)
+	GetByID(context.Context, uuid.UUID) (entity.Products, error)
+	GetProductsByRentpoint(context.Context, uuid.UUID) ([]entity.Products, error)
 
 	// GetByStatus(context.Context, entity.ProductStatus) ([]entity.Product, error)
 	// SetStatus(context.Context, uuid.UUID, entity.ProductStatus) error

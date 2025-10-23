@@ -33,10 +33,15 @@ type Template interface {
 	GetByID(context.Context, uuid.UUID) (entity.ProductTemp, error)
 }
 
+type CreateProductInput struct {
+	TemplateId uuid.UUID
+	Number     int
+}
+
 type Product interface {
-	Create(context.Context, uuid.UUID) (entity.Product, error)
-	GetAll(context.Context) ([]entity.Product, error)
-	GetByID(context.Context, uuid.UUID) (entity.Product, error)
+	Create(context.Context, CreateProductInput) (entity.Products, error)
+	GetAll(context.Context) ([]entity.Products, error)
+	GetByID(context.Context, uuid.UUID) (entity.Products, error)
 	Delete(context.Context, uuid.UUID) error
 
 	// GetByStatus(context.Context, entity.ProductStatus) ([]entity.Product, error)
@@ -62,6 +67,6 @@ func NewUsecase(d UsecaseDependencies) *Usecases {
 	return &Usecases{
 		RentPoint: NewRentPointUsecase(d.Repos.RentPoint, d.Repos.Product),
 		Template:  NewTeplateProductUsecase(d.Repos.TemplateProduct),
-		Product:   NewProductUsecase(d.Repos.Product),
+		Product:   NewProductUsecase(d.Repos.Product, d.Repos.TemplateProduct),
 	}
 }

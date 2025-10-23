@@ -23,12 +23,21 @@ func NewRoutes(apiV1Group fiber.Router, uc *usecase.Usecases, l logger.Interface
 	}
 
 	//
-	tmpProductGroup := apiV1Group.Group("/template")
+	templateGroup := apiV1Group.Group("/template")
 	{
 		t := newTemplateRoutes(uc.Template, l, validator.New(validator.WithRequiredStructEnabled()))
-		tmpProductGroup.Post("/", t.create)    // POST /v1/template/
-		tmpProductGroup.Get("/", t.getAll)     // GET  /v1/template/
-		tmpProductGroup.Get("/:id", t.getByID) // GET  /v1/template/{id}
+		templateGroup.Post("/", t.create)    // POST /v1/template/
+		templateGroup.Get("/", t.getAll)     // GET  /v1/template/
+		templateGroup.Get("/:id", t.getByID) // GET  /v1/template/{id}
+	}
+
+	//
+	productGroup := apiV1Group.Group("/product")
+	{
+		p := newProductRoutes(uc.Product, l, validator.New(validator.WithRequiredStructEnabled()))
+		productGroup.Post("/", p.create)    // POST /v1/product
+		productGroup.Get("/", p.getAll)     // POST /v1/product
+		productGroup.Get("/:id", p.getByID) // POST /v1/product/{id}
 	}
 
 }

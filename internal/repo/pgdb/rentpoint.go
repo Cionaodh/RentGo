@@ -24,7 +24,7 @@ func NewRentpointRepo(pg *postgres.Postgres) *RentpointRepo {
 // Create - Создание новой точки проката.
 func (r *RentpointRepo) Create(ctx context.Context, rp rp.CreateRentpointInput) (entity.RentPoint, error) {
 	sql := `
-		INSERT INTO rentpoint (name, addr)
+		INSERT INTO rentpoints (name, addr)
 		VALUES ($1, $2)
 		RETURNING id, name, addr;
 	`
@@ -50,7 +50,7 @@ func (r *RentpointRepo) Create(ctx context.Context, rp rp.CreateRentpointInput) 
 func (r *RentpointRepo) GetAll(ctx context.Context) ([]entity.RentPoint, error) {
 	sql := `
 		SELECT id, name, addr
-		FROM rentpoint;`
+		FROM rentpoints;`
 
 	rows, err := r.Pool.Query(ctx, sql)
 	if err != nil {
@@ -79,7 +79,7 @@ func (r *RentpointRepo) GetByID(ctx context.Context, id uuid.UUID) (entity.RentP
 	// // Получаем основную информацию о точке проката
 	sql := `
 		SELECT id, name, addr
-		FROM rentpoint
+		FROM rentpoints
 		WHERE id = $1
 	`
 
