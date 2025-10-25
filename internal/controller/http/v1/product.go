@@ -76,22 +76,21 @@ func (p *productRoutes) getAll(ctx *fiber.Ctx) error {
 	}
 
 	type response struct {
-		Name        string     `json:"name"`
-		Price       float64    `json:"price"`
-		RentPointID uuid.UUID  `json:"rentpoint_id"`
-		Status      string     `json:"status"`
-		Num         int        `json:"number"`
-		Ids         uuid.UUIDs `json:"ids"`
+		Id          uuid.UUID `json:"id"`
+		Name        string    `json:"name"`
+		Price       float64   `json:"price"`
+		Status      string    `json:"status"`
+		RentPointID uuid.UUID `json:"rentpoint_id"`
 	}
 
 	allProd := make([]response, 0, len(products))
 	for _, prod := range products {
 		allProd = append(allProd, response{
+			Id:          prod.ID,
 			Name:        prod.Name,
 			Price:       prod.Price,
-			RentPointID: prod.RentPointID,
 			Status:      string(prod.Status),
-			Ids:         prod.IDs,
+			RentPointID: prod.RentPointID,
 		})
 	}
 
@@ -99,6 +98,33 @@ func (p *productRoutes) getAll(ctx *fiber.Ctx) error {
 }
 
 func (p *productRoutes) getByID(ctx *fiber.Ctx) error {
+	id, err := uuid.Parse(ctx.Params("id"))
+	if err != nil {
+		p.l.Error(err, "http - v1 - getByID - invalid UUID format")
+		return errorResponse(ctx, http.StatusBadRequest, "invalid rentpoint ID format")
+	}
+	// p.l.Info("id: ", id)
 
-	return nil
+	product, err := p.pointUsecase.GetByID(ctx.UserContext(), id)
+	if err != nil {
+		p.l.Error(err, "http - v1 - create")
+		return errorResponse(ctx, http.StatusInternalServerError, "failed to get product")
+	}
+	// p.l.Info("id: ", product)
+	type response struct {
+		ID          uuid.UUID `json:"id"`
+		Name        string    `json:"name"`
+		Price       float64   `json:"price"`
+		Status      string    `json:"status"`
+		RentPointID uuid.UUID `json:"rentpoint_id"`
+	}
+	prod := response{
+		ID:          product.ID,
+		Name:        product.Name,
+		Price:       product.Price,
+		Status:      string(product.Status),
+		RentPointID: product.RentPointID,
+	}
+
+	return ctx.Status(http.StatusOK).JSON(prod)
 }

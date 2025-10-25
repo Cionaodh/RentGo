@@ -40,8 +40,8 @@ type CreateProductInput struct {
 
 type Product interface {
 	Create(context.Context, CreateProductInput) (entity.Products, error)
-	GetAll(context.Context) ([]entity.ProductsTemp, error)
-	GetByID(context.Context, uuid.UUID) (entity.Products, error)
+	GetAll(context.Context) ([]entity.Product, error)
+	GetByID(context.Context, uuid.UUID) (entity.Product, error)
 	Delete(context.Context, uuid.UUID) error
 
 	// GetByStatus(context.Context, entity.ProductStatus) ([]entity.Product, error)

@@ -58,18 +58,17 @@ func (p *ProductRepo) Create(ctx context.Context, in rp.CreateProductInput) (ent
 // }
 
 // TODO: написать JOIN с таблицей шаблонов
-func (p *ProductRepo) GetAll(ctx context.Context) ([]entity.ProductsTemp, error) {
+func (p *ProductRepo) GetAll(ctx context.Context) ([]entity.Product, error) {
 	sql := `
 SELECT 
-    p.rentpoint_id,
+	 p.id,
 	 t.name AS name,
-    p.status,
     t.price AS price,
-    ARRAY_AGG(p.id) AS ids
+    p.status,
+    p.rentpoint_id
 FROM products p
 JOIN templates t ON p.template_id = t.id
-GROUP BY p.template_id, p.rentpoint_id, p.status, t.name, t.price
-ORDER BY p.template_id, p.rentpoint_id, p.status;
+ORDER BY p.rentpoint_id, p.template_id, p.status;
     `
 
 	rows, err := p.Pool.Query(ctx, sql)
@@ -78,15 +77,15 @@ ORDER BY p.template_id, p.rentpoint_id, p.status;
 	}
 	defer rows.Close()
 
-	var products []entity.ProductsTemp
+	var products []entity.Product
 	for rows.Next() {
-		var product entity.ProductsTemp
+		var product entity.Product
 		err := rows.Scan(
-			&product.RentPointID,
+			&product.ID,
 			&product.Name,
-			&product.Status,
 			&product.Price,
-			&product.IDs,
+			&product.Status,
+			&product.RentPointID,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan product row: %w", err)
@@ -101,8 +100,33 @@ ORDER BY p.template_id, p.rentpoint_id, p.status;
 	return products, nil
 }
 
-func (p *ProductRepo) GetByID(context.Context, uuid.UUID) (entity.Products, error) {
-	return entity.Products{}, nil
+func (p *ProductRepo) GetByID(ctx context.Context, id uuid.UUID) (entity.Product, error) {
+	// Пишем запрос
+	sql := `
+	SELECT 
+	 p.id,
+	 t.name AS name,
+    t.price AS price,
+    p.status,
+    p.rentpoint_id
+	FROM products p
+	JOIN templates t ON p.template_id = t.id
+	WHERE p.id = $1;
+	`
+	// Применяем QueryRow()
+	var product entity.Product
+	err := p.Pool.QueryRow(ctx, sql, id).Scan(
+		&product.ID,
+		&product.Name,
+		&product.Price,
+		&product.Status,
+		&product.RentPointID,
+	)
+	if err != nil {
+		return entity.Product{}, fmt.Errorf("ProductRepo - GetByID - p.Pool.QueryRow: %w", err)
+	}
+
+	return product, nil
 }
 
 func (p *ProductRepo) GetProductsByRentpoint(context.Context, uuid.UUID) ([]entity.Products, error) {

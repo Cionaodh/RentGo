@@ -39,5 +39,4 @@ func NewRoutes(apiV1Group fiber.Router, uc *usecase.Usecases, l logger.Interface
 		productGroup.Get("/", p.getAll)     // POST /v1/product
 		productGroup.Get("/:id", p.getByID) // POST /v1/product/{id}
 	}
-
 }

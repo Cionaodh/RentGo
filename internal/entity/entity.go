@@ -52,9 +52,10 @@ type Products struct {
 
 type Product struct {
 	ID          uuid.UUID     `db:"id"`
-	TemplateID  uuid.UUID     `db:"template_id"`
-	RentPointID uuid.UUID     `db:"rentpoint_id"`
+	Name        string        `db:"name"`
+	Price       float64       `db:"price"`
 	Status      ProductStatus `db:"status"`
+	RentPointID uuid.UUID     `db:"rentpoint_id"`
 }
 
 // // ParseProductStatus конвертирует строку в ProductStatus (с проверкой валидности).

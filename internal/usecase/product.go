@@ -43,7 +43,7 @@ func (p *ProductUsecase) Create(ctx context.Context, in CreateProductInput) (ent
 	return products, nil
 }
 
-func (p *ProductUsecase) GetAll(ctx context.Context) ([]entity.ProductsTemp, error) {
+func (p *ProductUsecase) GetAll(ctx context.Context) ([]entity.Product, error) {
 	products, err := p.productRepo.GetAll(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("ProductUsecase - GetAll - p.productRepo.GetAll: %w", err)
@@ -56,14 +56,15 @@ func (p *ProductUsecase) GetAll(ctx context.Context) ([]entity.ProductsTemp, err
 	return products, nil
 }
 
-func (p *ProductUsecase) GetByID(ctx context.Context, id uuid.UUID) (entity.Products, error) {
-	// // проверка uuid на корректность и преобразование
-	// if err := uuid.Validate(id); err != nil {
-	// 	return entity.Product{}, fmt.Errorf("%s", err)
-	// }
+func (p *ProductUsecase) GetByID(ctx context.Context, id uuid.UUID) (entity.Product, error) {
+	product, err := p.productRepo.GetByID(ctx, id)
+	if err != nil {
+		return entity.Product{}, fmt.Errorf("ProductUsecase - GetByID - p.productRepo.GetByID: %w", err)
+	}
 
-	// return p.repo.GetByID(ctx, uuid.MustParse(id))
-	return entity.Products{}, nil
+	// TODO: проверить является ли пустым полученное значение
+
+	return product, nil
 }
 
 func (p *ProductUsecase) Delete(context.Context, uuid.UUID) error {
