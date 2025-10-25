@@ -25,6 +25,7 @@ func NewProductUsecase(p repo.Product, t repo.TemplateProduct) *ProductUsecase {
 func (p *ProductUsecase) Create(ctx context.Context, in CreateProductInput) (entity.Products, error) {
 	// проверяем поле Number
 	if in.Number <= 0 || in.Number > 100000 {
+		// TODO: обработать как ошибку запроса 300
 		return entity.Products{}, errors.New("invalid product number")
 	}
 
@@ -42,17 +43,17 @@ func (p *ProductUsecase) Create(ctx context.Context, in CreateProductInput) (ent
 	return products, nil
 }
 
-func (p *ProductUsecase) GetAll(ctx context.Context) ([]entity.Products, error) {
+func (p *ProductUsecase) GetAll(ctx context.Context) ([]entity.ProductsTemp, error) {
 	products, err := p.productRepo.GetAll(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("ProductUsecase - GetAll - p.productRepo.GetAll: %w", err)
 	}
 
-	if len(products) == 0 {
-		return nil, errors.New("no products found")
-	}
+	// if len(products) == 0 {
+	// 	return nil, errors.New("no products found")
+	// }
 
-	return p.productRepo.GetAll(ctx)
+	return products, nil
 }
 
 func (p *ProductUsecase) GetByID(ctx context.Context, id uuid.UUID) (entity.Products, error) {

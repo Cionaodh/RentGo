@@ -71,11 +71,13 @@ func (p *productRoutes) create(ctx *fiber.Ctx) error {
 func (p *productRoutes) getAll(ctx *fiber.Ctx) error {
 	products, err := p.pointUsecase.GetAll(ctx.UserContext())
 	if err != nil {
+		p.l.Error(err, "http - v1 - getAll")
 		return errorResponse(ctx, http.StatusInternalServerError, "product service problems")
 	}
 
 	type response struct {
-		TemplateID  uuid.UUID  `json:"template_id"`
+		Name        string     `json:"name"`
+		Price       float64    `json:"price"`
 		RentPointID uuid.UUID  `json:"rentpoint_id"`
 		Status      string     `json:"status"`
 		Num         int        `json:"number"`
@@ -85,7 +87,8 @@ func (p *productRoutes) getAll(ctx *fiber.Ctx) error {
 	allProd := make([]response, 0, len(products))
 	for _, prod := range products {
 		allProd = append(allProd, response{
-			TemplateID:  prod.TemplateID,
+			Name:        prod.Name,
+			Price:       prod.Price,
 			RentPointID: prod.RentPointID,
 			Status:      string(prod.Status),
 			Ids:         prod.IDs,

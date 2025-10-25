@@ -35,11 +35,19 @@ const (
 	StatusRented   ProductStatus = "Rented"
 )
 
+type ProductsTemp struct {
+	RentPointID uuid.UUID     `db:"rentpoint_id"`
+	Name        string        `db:"name"`
+	Status      ProductStatus `db:"status"`
+	Price       float64       `db:"price"`
+	IDs         uuid.UUIDs    `db:"ids"`
+}
+
 type Products struct {
-	TemplateID  uuid.UUID     `db:"template_id"`
 	RentPointID uuid.UUID     `db:"rentpoint_id"`
 	Status      ProductStatus `db:"status"`
 	IDs         uuid.UUIDs    `db:"ids"`
+	TemplateID  uuid.UUID     `db:"template_id"`
 }
 
 type Product struct {

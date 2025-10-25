@@ -50,17 +50,26 @@ func (p *ProductRepo) Create(ctx context.Context, in rp.CreateProductInput) (ent
 	return product, nil
 }
 
+// type ProductTemp struct {
+// 	ID          uuid.UUID `db:"id"`
+// 	Name        string    `db:"name"`
+// 	Description string    `db:"description"`
+// 	Price       float64   `db:"price"`
+// }
+
 // TODO: написать JOIN с таблицей шаблонов
-func (p *ProductRepo) GetAll(ctx context.Context) ([]entity.Products, error) {
+func (p *ProductRepo) GetAll(ctx context.Context) ([]entity.ProductsTemp, error) {
 	sql := `
-        SELECT 
-            template_id,
-            rentpoint_id,
-            status,
-            ARRAY_AGG(id) AS ids
-        FROM products
-        GROUP BY template_id, rentpoint_id, status
-        ORDER BY template_id, rentpoint_id, status
+SELECT 
+    p.rentpoint_id,
+	 t.name AS name,
+    p.status,
+    t.price AS price,
+    ARRAY_AGG(p.id) AS ids
+FROM products p
+JOIN templates t ON p.template_id = t.id
+GROUP BY p.template_id, p.rentpoint_id, p.status, t.name, t.price
+ORDER BY p.template_id, p.rentpoint_id, p.status;
     `
 
 	rows, err := p.Pool.Query(ctx, sql)
@@ -69,13 +78,14 @@ func (p *ProductRepo) GetAll(ctx context.Context) ([]entity.Products, error) {
 	}
 	defer rows.Close()
 
-	var products []entity.Products
+	var products []entity.ProductsTemp
 	for rows.Next() {
-		var product entity.Products
+		var product entity.ProductsTemp
 		err := rows.Scan(
-			&product.TemplateID,
 			&product.RentPointID,
+			&product.Name,
 			&product.Status,
+			&product.Price,
 			&product.IDs,
 		)
 		if err != nil {

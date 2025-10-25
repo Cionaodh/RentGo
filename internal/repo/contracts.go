@@ -26,7 +26,7 @@ type TemplateProduct interface {
 
 type Product interface {
 	Create(context.Context, rp.CreateProductInput) (entity.Products, error)
-	GetAll(context.Context) ([]entity.Products, error)
+	GetAll(context.Context) ([]entity.ProductsTemp, error)
 	GetByID(context.Context, uuid.UUID) (entity.Products, error)
 	GetProductsByRentpoint(context.Context, uuid.UUID) ([]entity.Products, error)
 
