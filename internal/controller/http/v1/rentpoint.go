@@ -42,7 +42,7 @@ func (r *rentPointRoutes) create(ctx *fiber.Ctx) error {
 	if err := r.v.Struct(body); err != nil {
 		r.l.Error(err, "http - v1 - create")
 
-		return errorResponse(ctx, http.StatusBadRequest, "invalid request body")
+		return errorResponse(ctx, http.StatusBadRequest, "request body validation error")
 	}
 
 	point, err := r.pointUsecase.CreateRentpoint(
@@ -57,20 +57,8 @@ func (r *rentPointRoutes) create(ctx *fiber.Ctx) error {
 		return errorResponse(ctx, http.StatusInternalServerError, "rentpoint service problems")
 	}
 
-	type response struct {
-		Id   uuid.UUID `json:"id"`
-		Name string    `json:"name"`
-		Addr string    `json:"addr"`
-	}
-
-	p := response{
-		Id:   point.ID,
-		Name: point.Name,
-		Addr: point.ID.String(),
-	}
-
 	// return ctx.Status(http.StatusCreated).JSON(point)
-	return ctx.Status(http.StatusCreated).JSON(p)
+	return ctx.Status(http.StatusCreated).JSON(point)
 }
 
 func (r *rentPointRoutes) getAll(ctx *fiber.Ctx) error {
@@ -80,25 +68,9 @@ func (r *rentPointRoutes) getAll(ctx *fiber.Ctx) error {
 		return errorResponse(ctx, http.StatusInternalServerError, "failed to get rent points")
 	}
 
-	type response struct {
-		Id   uuid.UUID `json:"id"`
-		Name string    `json:"name"`
-		Addr string    `json:"addr"`
-	}
-
-	ps := make([]response, 0, len(points))
-	for _, point := range points {
-		ps = append(ps, response{
-			Id:   point.ID,
-			Name: point.Name,
-			Addr: point.Addr,
-		})
-	}
-
-	return ctx.Status(http.StatusOK).JSON(ps)
+	return ctx.Status(http.StatusOK).JSON(points)
 }
 
-// Get - с id --> структура с данными о точке проката и всех её продуктах
 func (r *rentPointRoutes) getByID(ctx *fiber.Ctx) error {
 	id, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
@@ -108,28 +80,28 @@ func (r *rentPointRoutes) getByID(ctx *fiber.Ctx) error {
 
 	point, err := r.pointUsecase.GetByID(ctx.UserContext(), id)
 	if err != nil {
-		// if err.Error() == "точка проката с ID "+id.String()+" не найдена" {
-		// 	return errorResponse(ctx, http.StatusNotFound, "rentpoint not found")
-		// }
 		r.l.Error(err, "http - v1 - getByID")
 		return errorResponse(ctx, http.StatusInternalServerError, "failed to get rent point")
 	}
 
-	type response struct {
-		Id   uuid.UUID `json:"id"`
-		Name string    `json:"name"`
-		Addr string    `json:"addr"`
-		// products []struct {
-		// 	ID         uuid.UUID `json:"id"`
-		// 	TemplateID uuid.UUID `json:"template"` // TODO: подтянуть данные из шаблона
-		// }
+	return ctx.Status(http.StatusOK).JSON(point)
+}
+
+type AddProductsDTO struct {
+	IdRentpoint uuid.UUID  `json:"id_rentpoint"`
+	IdProducts  uuid.UUIDs `json:"id_products"`
+}
+
+func (r *rentPointRoutes) addProducts(ctx *fiber.Ctx) error {
+	var input AddProductsDTO
+	if err := ctx.BodyParser(input); err != nil {
+		return errorResponse(ctx, http.StatusBadRequest, "invalid request body")
 	}
 
-	p := response{
-		Id:   point.ID,
-		Name: point.Name,
-		Addr: point.Addr,
+	if err := r.v.Struct(input); err != nil {
+		r.l.Error(err, "http - v1 - create")
+		return errorResponse(ctx, http.StatusBadRequest, "request body validation error")
 	}
 
-	return ctx.Status(http.StatusOK).JSON(p)
+	return nil
 }

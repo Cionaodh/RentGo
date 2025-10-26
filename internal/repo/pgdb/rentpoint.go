@@ -75,28 +75,38 @@ func (r *RentpointRepo) GetAll(ctx context.Context) ([]entity.RentPoint, error) 
 }
 
 // GetByID - Получение точки проката по id (со списком продуктов).
-func (r *RentpointRepo) GetByID(ctx context.Context, id uuid.UUID) (entity.RentPoint, error) {
+func (r *RentpointRepo) GetByID(ctx context.Context, id uuid.UUID) (entity.ProductRentPoint, error) {
 	// // Получаем основную информацию о точке проката
 	sql := `
-		SELECT id, name, addr
-		FROM rentpoints
-		WHERE id = $1
+SELECT 
+    r.id,
+    r.name,
+    r.addr,
+    COALESCE(
+        JSON_AGG(
+            JSON_BUILD_OBJECT(
+                'id', p.id,
+                'name', t.name,
+                'price', t.price,
+                'status', p.status
+                --'rentpoint_id', p.rentpoint_id
+            )
+        ) FILTER (WHERE p.id IS NOT NULL),
+        '[]'
+    ) AS products
+FROM rentpoints r
+LEFT JOIN products p ON r.id = p.rentpoint_id
+LEFT JOIN templates t ON p.template_id = t.id
+WHERE r.id = $1
+GROUP BY r.id, r.name, r.addr;
 	`
 
-	var rp entity.RentPoint
-	err := r.Pool.QueryRow(ctx, sql, id).Scan(&rp.ID, &rp.Name, &rp.Addr)
+	var rp entity.ProductRentPoint
+	err := r.Pool.QueryRow(ctx, sql, id).Scan(&rp.ID, &rp.Name, &rp.Addr, &rp.Products)
 	if err != nil {
-		return entity.RentPoint{}, fmt.Errorf("RentpointRepo - GetByID - r.Pool.QueryRow: %w", err)
+		return entity.ProductRentPoint{}, fmt.Errorf("RentpointRepo - GetByID - r.Pool.QueryRow: %w", err)
 	}
 
-	// // Получаем список продуктов, привязанных к точке проката
-	// products, err := r.getPointProducts(ctx, id)
-	// if err != nil {
-	// 	return entity.RentPoint{}, fmt.Errorf("RentpointRepo - GetByID - getPointProducts: %w", err)
-	// }
-
-	// // rp.Products = products
-	// return rp, nil
 	return rp, nil
 }
 

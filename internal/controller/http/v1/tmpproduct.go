@@ -60,45 +60,14 @@ func (r *templateRoutes) create(ctx *fiber.Ctx) error {
 		return errorResponse(ctx, http.StatusInternalServerError, "template service problems")
 	}
 
-	type response struct {
-		ID          uuid.UUID `json:"id"`
-		Name        string    `json:"name"`
-		Description string    `json:"desc"`
-		Price       float64   `json:"price"`
-	}
-
-	template := response{
-		ID:          temp.ID,
-		Name:        temp.Name,
-		Description: temp.Description,
-		Price:       temp.Price,
-	}
-
-	return ctx.Status(http.StatusCreated).JSON(template)
+	return ctx.Status(http.StatusCreated).JSON(temp)
 }
 
 func (r *templateRoutes) getAll(ctx *fiber.Ctx) error {
-	res, err := r.temp.GetAll(ctx.UserContext())
+	templates, err := r.temp.GetAll(ctx.UserContext())
 	if err != nil {
 		r.l.Error(err, "http - v1 - getAll")
 		return errorResponse(ctx, http.StatusInternalServerError, "failed to get all templates")
-	}
-
-	type response struct {
-		ID          uuid.UUID `json:"id"`
-		Name        string    `json:"name"`
-		Description string    `json:"desc"`
-		Price       float64   `json:"price"`
-	}
-
-	templates := make([]response, 0, len(res))
-	for _, t := range res {
-		templates = append(templates, response{
-			ID:          t.ID,
-			Name:        t.Name,
-			Description: t.Description,
-			Price:       t.Price,
-		})
 	}
 
 	return ctx.Status(http.StatusOK).JSON(templates)

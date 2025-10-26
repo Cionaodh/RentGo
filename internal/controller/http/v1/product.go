@@ -50,22 +50,7 @@ func (p *productRoutes) create(ctx *fiber.Ctx) error {
 		return errorResponse(ctx, http.StatusInternalServerError, "product service problems")
 	}
 
-	type response struct {
-		TemplateID  uuid.UUID  `json:"template_id"`
-		RentPointID uuid.UUID  `json:"rentpoint_id"`
-		Status      string     `json:"status"`
-		Num         int        `json:"number"`
-		Ids         uuid.UUIDs `json:"ids"`
-	}
-
-	prod := response{
-		TemplateID:  products.TemplateID,
-		RentPointID: products.RentPointID,
-		Status:      string(products.Status),
-		Ids:         products.IDs,
-	}
-
-	return ctx.Status(http.StatusCreated).JSON(prod)
+	return ctx.Status(http.StatusCreated).JSON(products)
 }
 
 func (p *productRoutes) getAll(ctx *fiber.Ctx) error {
@@ -75,26 +60,7 @@ func (p *productRoutes) getAll(ctx *fiber.Ctx) error {
 		return errorResponse(ctx, http.StatusInternalServerError, "product service problems")
 	}
 
-	type response struct {
-		Id          uuid.UUID `json:"id"`
-		Name        string    `json:"name"`
-		Price       float64   `json:"price"`
-		Status      string    `json:"status"`
-		RentPointID uuid.UUID `json:"rentpoint_id"`
-	}
-
-	allProd := make([]response, 0, len(products))
-	for _, prod := range products {
-		allProd = append(allProd, response{
-			Id:          prod.ID,
-			Name:        prod.Name,
-			Price:       prod.Price,
-			Status:      string(prod.Status),
-			RentPointID: prod.RentPointID,
-		})
-	}
-
-	return ctx.Status(http.StatusOK).JSON(allProd)
+	return ctx.Status(http.StatusOK).JSON(products)
 }
 
 func (p *productRoutes) getByID(ctx *fiber.Ctx) error {
@@ -103,28 +69,12 @@ func (p *productRoutes) getByID(ctx *fiber.Ctx) error {
 		p.l.Error(err, "http - v1 - getByID - invalid UUID format")
 		return errorResponse(ctx, http.StatusBadRequest, "invalid rentpoint ID format")
 	}
-	// p.l.Info("id: ", id)
 
 	product, err := p.pointUsecase.GetByID(ctx.UserContext(), id)
 	if err != nil {
 		p.l.Error(err, "http - v1 - create")
 		return errorResponse(ctx, http.StatusInternalServerError, "failed to get product")
 	}
-	// p.l.Info("id: ", product)
-	type response struct {
-		ID          uuid.UUID `json:"id"`
-		Name        string    `json:"name"`
-		Price       float64   `json:"price"`
-		Status      string    `json:"status"`
-		RentPointID uuid.UUID `json:"rentpoint_id"`
-	}
-	prod := response{
-		ID:          product.ID,
-		Name:        product.Name,
-		Price:       product.Price,
-		Status:      string(product.Status),
-		RentPointID: product.RentPointID,
-	}
 
-	return ctx.Status(http.StatusOK).JSON(prod)
+	return ctx.Status(http.StatusOK).JSON(product)
 }

@@ -5,25 +5,29 @@ import (
 )
 
 type RentPoint struct {
-	ID   uuid.UUID `db:"id"`
-	Name string    `db:"name"`
-	Addr string    `db:"addr"`
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+	Addr string    `json:"addr"`
 	// TODO: Координаты (45.63545 74.54345)
 }
 
 type ProductRentPoint struct {
-	ID       uuid.UUID  `db:"id"`
-	Name     string     `db:"name"`
-	Addr     string     `db:"addr"`
-	Products []Products `db:"product"`
-	// TODO: Координаты (45.63545 74.54345)
+	ID       uuid.UUID `json:"id"`
+	Name     string    `json:"name"`
+	Addr     string    `json:"addr"`
+	Products []struct {
+		ID     uuid.UUID     `json:"id"`
+		Name   string        `json:"name"`
+		Price  float64       `json:"price"`
+		Status ProductStatus `json:"status"`
+	} `json:"products"`
 }
 
 type ProductTemp struct {
-	ID          uuid.UUID `db:"id"`
-	Name        string    `db:"name"`
-	Description string    `db:"description"`
-	Price       float64   `db:"price"`
+	ID          uuid.UUID `json:"id"`
+	Name        string    `json:"name"`
+	Description string    `json:"desc"`
+	Price       float64   `json:"price"`
 }
 
 type ProductStatus string
@@ -35,27 +39,27 @@ const (
 	StatusRented   ProductStatus = "Rented"
 )
 
-type ProductsTemp struct {
-	RentPointID uuid.UUID     `db:"rentpoint_id"`
-	Name        string        `db:"name"`
-	Status      ProductStatus `db:"status"`
-	Price       float64       `db:"price"`
-	IDs         uuid.UUIDs    `db:"ids"`
-}
+// type ProductsTemp struct {
+// 	RentPointID uuid.UUID
+// 	Name        string
+// 	Status      ProductStatus
+// 	Price       float64
+// 	IDs         uuid.UUIDs
+// }
 
 type Products struct {
-	RentPointID uuid.UUID     `db:"rentpoint_id"`
-	Status      ProductStatus `db:"status"`
-	IDs         uuid.UUIDs    `db:"ids"`
-	TemplateID  uuid.UUID     `db:"template_id"`
+	RentPointID uuid.UUID     `json:"rentpoint_id"`
+	Status      ProductStatus `json:"status"`
+	IDs         uuid.UUIDs    `json:"ids"`
+	TemplateID  uuid.UUID     `json:"template_id"`
 }
 
 type Product struct {
-	ID          uuid.UUID     `db:"id"`
-	Name        string        `db:"name"`
-	Price       float64       `db:"price"`
-	Status      ProductStatus `db:"status"`
-	RentPointID uuid.UUID     `db:"rentpoint_id"`
+	ID          uuid.UUID     `json:"id"`
+	Name        string        `json:"name"`
+	Price       float64       `json:"price"`
+	Status      ProductStatus `json:"status"`
+	RentPointID uuid.UUID     `json:"rentpoint_id"`
 }
 
 // // ParseProductStatus конвертирует строку в ProductStatus (с проверкой валидности).

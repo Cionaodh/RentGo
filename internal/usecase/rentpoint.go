@@ -53,18 +53,7 @@ func (rp *RentPointUsecase) GetByID(ctx context.Context, id uuid.UUID) (entity.P
 		return entity.ProductRentPoint{}, fmt.Errorf("RentPointUseCase - GetByID - rp.repo.GetByDI: %w", err)
 	}
 
-	p := entity.ProductRentPoint{
-		ID:       point.ID,
-		Name:     point.Name,
-		Addr:     point.Addr,
-		Products: nil,
-	}
-
-	// rp.productRepo.GetProductsByRentpoint()
-
-	// TODO: поиск в таблице продуктов - всех продуктов принадлежащих данной точке проката
-
-	return p, nil
+	return point, nil
 }
 
 func (rp *RentPointUsecase) Delete(context.Context, uuid.UUID) error {
