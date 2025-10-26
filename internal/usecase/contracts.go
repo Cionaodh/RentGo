@@ -13,12 +13,17 @@ type CreateRentpointInput struct {
 	Addr string
 }
 
+type AddProductsInput struct {
+	ID_rentpoint uuid.UUID
+	IDs_products uuid.UUIDs
+}
+
 type RentPoint interface {
 	CreateRentpoint(context.Context, CreateRentpointInput) (entity.RentPoint, error)
 	GetAll(context.Context) ([]entity.RentPoint, error)
 	GetByID(context.Context, uuid.UUID) (entity.ProductRentPoint, error)
 	Delete(context.Context, uuid.UUID) error
-	// AddProduct(context.Context, uuid.UUID, uuid.UUID)
+	AddProduct(context.Context, AddProductsInput) (entity.ProductRentPoint, error)
 }
 
 type CreateTemplateInput struct {

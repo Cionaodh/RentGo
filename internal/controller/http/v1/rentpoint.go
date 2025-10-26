@@ -88,20 +88,34 @@ func (r *rentPointRoutes) getByID(ctx *fiber.Ctx) error {
 }
 
 type AddProductsDTO struct {
-	IdRentpoint uuid.UUID  `json:"id_rentpoint"`
-	IdProducts  uuid.UUIDs `json:"id_products"`
+	IdProducts uuid.UUIDs `json:"products"`
 }
 
 func (r *rentPointRoutes) addProducts(ctx *fiber.Ctx) error {
-	var input AddProductsDTO
-	if err := ctx.BodyParser(input); err != nil {
-		return errorResponse(ctx, http.StatusBadRequest, "invalid request body")
+
+	id, err := uuid.Parse(ctx.Params("id"))
+	if err != nil {
+		r.l.Error(err, "http - v1 - addProducts - invalid UUID format")
+		return errorResponse(ctx, http.StatusBadRequest, "invalid rentpoint ID format")
 	}
 
-	if err := r.v.Struct(input); err != nil {
-		r.l.Error(err, "http - v1 - create")
+	var body AddProductsDTO
+	if err := ctx.BodyParser(&body); err != nil {
+		r.l.Error(err, "http - v1 - addProducts - invalid request body")
+		return errorResponse(ctx, http.StatusBadRequest, "invalid request body")
+	}
+	if err := r.v.Struct(body); err != nil {
+		r.l.Error(err, "http - v1 - addProducts")
 		return errorResponse(ctx, http.StatusBadRequest, "request body validation error")
 	}
 
-	return nil
+	rentpoint, err := r.pointUsecase.AddProduct(ctx.UserContext(), usecase.AddProductsInput{
+		ID_rentpoint: id,
+		IDs_products: body.IdProducts,
+	})
+	if err != nil {
+		return errorResponse(ctx, http.StatusInternalServerError, "rentpoint service problems")
+	}
+
+	return ctx.Status(http.StatusOK).JSON(rentpoint)
 }

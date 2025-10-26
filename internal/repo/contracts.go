@@ -15,7 +15,7 @@ type RentPoint interface {
 	GetAll(context.Context) ([]entity.RentPoint, error)
 	GetByID(context.Context, uuid.UUID) (entity.ProductRentPoint, error)
 	Delete(context.Context, uuid.UUID) error
-	// TODO: AddPriduct(context.Context, uuid.UUID) error// Прикрепление продукта к точке проката
+	AddProducts(context.Context, rp.AddProductsInput) (entity.ProductRentPoint, error) // Прикрепление продукта к точке проката
 }
 
 type TemplateProduct interface {

@@ -46,7 +46,6 @@ func (r *RentpointRepo) Create(ctx context.Context, rp rp.CreateRentpointInput) 
 	return point, nil
 }
 
-// GetAll - Получение всех точек проката (без прикрепленных продуктов).
 func (r *RentpointRepo) GetAll(ctx context.Context) ([]entity.RentPoint, error) {
 	sql := `
 		SELECT id, name, addr
@@ -76,41 +75,38 @@ func (r *RentpointRepo) GetAll(ctx context.Context) ([]entity.RentPoint, error) 
 
 // GetByID - Получение точки проката по id (со списком продуктов).
 func (r *RentpointRepo) GetByID(ctx context.Context, id uuid.UUID) (entity.ProductRentPoint, error) {
-	// // Получаем основную информацию о точке проката
+
 	sql := `
-SELECT 
-    r.id,
-    r.name,
-    r.addr,
-    COALESCE(
-        JSON_AGG(
-            JSON_BUILD_OBJECT(
-                'id', p.id,
-                'name', t.name,
-                'price', t.price,
-                'status', p.status
-                --'rentpoint_id', p.rentpoint_id
-            )
-        ) FILTER (WHERE p.id IS NOT NULL),
-        '[]'
-    ) AS products
-FROM rentpoints r
-LEFT JOIN products p ON r.id = p.rentpoint_id
-LEFT JOIN templates t ON p.template_id = t.id
-WHERE r.id = $1
-GROUP BY r.id, r.name, r.addr;
+	SELECT 
+	    r.id,
+	    r.name,
+	    r.addr,
+	    COALESCE(
+	        JSON_AGG(
+	            JSON_BUILD_OBJECT(
+	                'id', p.id,
+	                'name', t.name,
+	                'price', t.price,
+	                'status', p.status
+	            )
+	        ) FILTER (WHERE p.id IS NOT NULL),
+	        '[]'
+	    ) AS products
+	FROM rentpoints r
+	LEFT JOIN products p ON r.id = p.rentpoint_id
+	LEFT JOIN templates t ON p.template_id = t.id
+	WHERE r.id = $1
+	GROUP BY r.id, r.name, r.addr;
 	`
 
 	var rp entity.ProductRentPoint
-	err := r.Pool.QueryRow(ctx, sql, id).Scan(&rp.ID, &rp.Name, &rp.Addr, &rp.Products)
-	if err != nil {
+	if err := r.Pool.QueryRow(ctx, sql, id).Scan(&rp.ID, &rp.Name, &rp.Addr, &rp.Products); err != nil {
 		return entity.ProductRentPoint{}, fmt.Errorf("RentpointRepo - GetByID - r.Pool.QueryRow: %w", err)
 	}
 
 	return rp, nil
 }
 
-// Delete - Удаление точки проката.
 func (r *RentpointRepo) Delete(ctx context.Context, id uuid.UUID) error {
 	// Сначала удаляем связи с продуктами
 	deleteProductsSQL := `
@@ -140,76 +136,131 @@ func (r *RentpointRepo) Delete(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-// getPointProducts - получение списка продуктов точки проката
-func (r *RentpointRepo) getPointProducts(ctx context.Context, pointID uuid.UUID) ([]uuid.UUID, error) {
-	sql := `
-		SELECT product_id
-		FROM rent_point_products
-		WHERE rent_point_id = $1
-		ORDER BY product_id
+func (r *RentpointRepo) AddProducts(ctx context.Context, in rp.AddProductsInput) (entity.ProductRentPoint, error) {
+	sqlUpdate := `
+	UPDATE products
+	SET 
+	    rentpoint_id = $1,
+	    status = $2
+	WHERE id = ANY($3);
 	`
 
-	rows, err := r.Pool.Query(ctx, sql, pointID)
+	tx, err := r.Pool.Begin(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("getPointProducts - r.Pool.Query: %w", err)
+		return entity.ProductRentPoint{}, fmt.Errorf("RentpointRepo - AddProducts - r.Pool.Begin: %w", err)
 	}
-	defer rows.Close()
+	defer tx.Rollback(ctx)
 
-	var products []uuid.UUID
-	for rows.Next() {
-		var productID uuid.UUID
-		err := rows.Scan(&productID)
-		if err != nil {
-			return nil, fmt.Errorf("getPointProducts - rows.Scan: %w", err)
-		}
-		products = append(products, productID)
+	_, err = tx.Exec(ctx, sqlUpdate, in.ID_rentpoint, in.Status, in.IDs_products)
+	if err != nil {
+		return entity.ProductRentPoint{}, fmt.Errorf("RentpointRepo - AddProducts - tx.Exec: %w", err)
 	}
 
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("getPointProducts - rows.Err: %w", err)
+	sqlGet := `
+	SELECT 
+	    r.id,
+	    r.name,
+	    r.addr,
+	    COALESCE(
+	        JSON_AGG(
+	            JSON_BUILD_OBJECT(
+	                'id', p.id,
+	                'name', t.name,
+	                'price', t.price,
+	                'status', p.status
+	            )
+	        ) FILTER (WHERE p.id IS NOT NULL),
+	        '[]'
+	    ) AS products
+	FROM rentpoints r
+	LEFT JOIN products p ON r.id = p.rentpoint_id
+	LEFT JOIN templates t ON p.template_id = t.id
+	WHERE r.id = $1
+	GROUP BY r.id, r.name, r.addr;
+	`
+
+	var rp entity.ProductRentPoint
+	if err = tx.QueryRow(ctx, sqlGet, in.ID_rentpoint).Scan(&rp.ID, &rp.Name, &rp.Addr, &rp.Products); err != nil {
+		return entity.ProductRentPoint{}, fmt.Errorf("RentpointRepo - AddProducts - r.Pool.QueryRow: %w", err)
 	}
 
-	return products, nil
+	if err := tx.Commit(ctx); err != nil {
+		return entity.ProductRentPoint{}, fmt.Errorf("RentpointRepo - AddProducts - tx.Commit: %w", err)
+	}
+
+	return rp, nil
 }
+
+// getPointProducts - получение списка продуктов точки проката
+// func (r *RentpointRepo) getPointProducts(ctx context.Context, pointID uuid.UUID) ([]uuid.UUID, error) {
+// 	sql := `
+// 		SELECT product_id
+// 		FROM rent_point_products
+// 		WHERE rent_point_id = $1
+// 		ORDER BY product_id
+// 	`
+//
+// 	rows, err := r.Pool.Query(ctx, sql, pointID)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("getPointProducts - r.Pool.Query: %w", err)
+// 	}
+// 	defer rows.Close()
+//
+// 	var products []uuid.UUID
+// 	for rows.Next() {
+// 		var productID uuid.UUID
+// 		err := rows.Scan(&productID)
+// 		if err != nil {
+// 			return nil, fmt.Errorf("getPointProducts - rows.Scan: %w", err)
+// 		}
+// 		products = append(products, productID)
+// 	}
+//
+// 	if err := rows.Err(); err != nil {
+// 		return nil, fmt.Errorf("getPointProducts - rows.Err: %w", err)
+// 	}
+//
+// 	return products, nil
+// }
 
 // updatePointProducts - обновление списка продуктов точки проката
-func (r *RentpointRepo) updatePointProducts(ctx context.Context, pointID uuid.UUID, products []uuid.UUID) error {
-	// Удаляем старые связи
-	deleteSQL := `
-		DELETE FROM rent_point_products
-		WHERE rent_point_id = $1
-	`
-	_, err := r.Pool.Exec(ctx, deleteSQL, pointID)
-	if err != nil {
-		return fmt.Errorf("updatePointProducts - delete: %w", err)
-	}
-
-	// Добавляем новые связи
-	if len(products) == 0 {
-		return nil
-	}
-
-	// Строим запрос для множественной вставки
-	insertSQL := `
-		INSERT INTO rent_point_products (rent_point_id, product_id)
-		VALUES 
-	`
-	args := make([]interface{}, 0, len(products)*2)
-	argCounter := 1
-
-	for i, productID := range products {
-		if i > 0 {
-			insertSQL += ","
-		}
-		insertSQL += fmt.Sprintf("($%d, $%d)", argCounter, argCounter+1)
-		args = append(args, pointID, productID)
-		argCounter += 2
-	}
-
-	_, err = r.Pool.Exec(ctx, insertSQL, args...)
-	if err != nil {
-		return fmt.Errorf("updatePointProducts - insert: %w", err)
-	}
-
-	return nil
-}
+// func (r *RentpointRepo) updatePointProducts(ctx context.Context, pointID uuid.UUID, products []uuid.UUID) error {
+// 	// Удаляем старые связи
+// 	deleteSQL := `
+// 		DELETE FROM rent_point_products
+// 		WHERE rent_point_id = $1
+// 	`
+// 	_, err := r.Pool.Exec(ctx, deleteSQL, pointID)
+// 	if err != nil {
+// 		return fmt.Errorf("updatePointProducts - delete: %w", err)
+// 	}
+//
+// 	// Добавляем новые связи
+// 	if len(products) == 0 {
+// 		return nil
+// 	}
+//
+// 	// Строим запрос для множественной вставки
+// 	insertSQL := `
+// 		INSERT INTO rent_point_products (rent_point_id, product_id)
+// 		VALUES
+// 	`
+// 	args := make([]interface{}, 0, len(products)*2)
+// 	argCounter := 1
+//
+// 	for i, productID := range products {
+// 		if i > 0 {
+// 			insertSQL += ","
+// 		}
+// 		insertSQL += fmt.Sprintf("($%d, $%d)", argCounter, argCounter+1)
+// 		args = append(args, pointID, productID)
+// 		argCounter += 2
+// 	}
+//
+// 	_, err = r.Pool.Exec(ctx, insertSQL, args...)
+// 	if err != nil {
+// 		return fmt.Errorf("updatePointProducts - insert: %w", err)
+// 	}
+//
+// 	return nil
+// }

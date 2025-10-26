@@ -50,25 +50,17 @@ func (p *ProductRepo) Create(ctx context.Context, in rp.CreateProductInput) (ent
 	return product, nil
 }
 
-// type ProductTemp struct {
-// 	ID          uuid.UUID `db:"id"`
-// 	Name        string    `db:"name"`
-// 	Description string    `db:"description"`
-// 	Price       float64   `db:"price"`
-// }
-
-// TODO: написать JOIN с таблицей шаблонов
 func (p *ProductRepo) GetAll(ctx context.Context) ([]entity.Product, error) {
 	sql := `
-SELECT 
-	 p.id,
-	 t.name AS name,
-    t.price AS price,
-    p.status,
-    p.rentpoint_id
-FROM products p
-JOIN templates t ON p.template_id = t.id
-ORDER BY p.rentpoint_id, p.template_id, p.status;
+	SELECT 
+		 p.id,
+		 t.name AS name,
+	    t.price AS price,
+	    p.status,
+	    p.rentpoint_id
+	FROM products p
+	JOIN templates t ON p.template_id = t.id
+	ORDER BY p.rentpoint_id, p.template_id, p.status;
     `
 
 	rows, err := p.Pool.Query(ctx, sql)
@@ -101,7 +93,7 @@ ORDER BY p.rentpoint_id, p.template_id, p.status;
 }
 
 func (p *ProductRepo) GetByID(ctx context.Context, id uuid.UUID) (entity.Product, error) {
-	// Пишем запрос
+
 	sql := `
 	SELECT 
 	 p.id,
@@ -113,7 +105,7 @@ func (p *ProductRepo) GetByID(ctx context.Context, id uuid.UUID) (entity.Product
 	JOIN templates t ON p.template_id = t.id
 	WHERE p.id = $1;
 	`
-	// Применяем QueryRow()
+
 	var product entity.Product
 	err := p.Pool.QueryRow(ctx, sql, id).Scan(
 		&product.ID,

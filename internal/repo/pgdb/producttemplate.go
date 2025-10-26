@@ -39,20 +39,6 @@ func (pt *ProductTemplateRepo) Create(ctx context.Context, temp rp.CreateTemplat
 		return entity.ProductTemp{}, fmt.Errorf("ProductTemplateRepo - Create - pt.Pool.QueryRow: %w", err)
 	}
 
-	// rows, err := pt.Pool.Query(ctx, sql,
-	// 	temp.Name,
-	// 	temp.Description,
-	// 	temp.Price,
-	// )
-	// if err != nil {
-	// 	return entity.ProductTemp{}, fmt.Errorf("ProductTemplateRepo - Create - pt.Pool.Query: %w", err)
-	// }
-
-	// template, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[entity.ProductTemp])
-	// if err != nil {
-	// 	return entity.ProductTemp{}, fmt.Errorf("ProductTemplateRepo - Create - pgx.CollectExactlyOneRow: %w", err)
-	// }
-
 	return template, nil
 }
 
