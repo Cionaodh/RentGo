@@ -2,6 +2,7 @@ package v1
 
 import (
 	"EasyRentGo/internal/usecase"
+	"errors"
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
@@ -47,10 +48,16 @@ func (r *rentPointRoutes) create(ctx *fiber.Ctx) error {
 		},
 	)
 	if err != nil {
-		return errorResponse(ctx, http.StatusInternalServerError, "rentpoint service problems")
+		if errors.Is(err, usecase.ErrRentPointAlreadyExists) {
+			return errorResponse(ctx, http.StatusConflict, err.Error())
+		}
+		if errors.Is(err, usecase.ErrFieldIsTooLong) {
+			return errorResponse(ctx, http.StatusBadRequest, err.Error())
+		}
+
+		return errorResponse(ctx, http.StatusInternalServerError, err.Error())
 	}
 
-	// return ctx.Status(http.StatusCreated).JSON(point)
 	return ctx.Status(http.StatusCreated).JSON(point)
 }
 

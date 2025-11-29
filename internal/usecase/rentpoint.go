@@ -3,9 +3,11 @@ package usecase
 import (
 	"EasyRentGo/internal/entity"
 	"EasyRentGo/internal/repo"
+	"EasyRentGo/internal/repo/repoerrors"
 	repotype "EasyRentGo/internal/repo/repotypes"
 	"EasyRentGo/pkg/logger"
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -26,14 +28,21 @@ func NewRentPointUsecase(rp repo.RentPoint, p repo.Product, l logger.Interface) 
 }
 
 func (rp *RentPointUsecase) CreateRentpoint(ctx context.Context, in CreateRentpointInput) (entity.RentPoint, error) {
-	// point.ID = uuid.New()
+
+	if len(in.Addr) > 50 || len(in.Name) > 50 {
+		return entity.RentPoint{}, ErrFieldIsTooLong
+	}
 
 	point, err := rp.pointRepo.Create(ctx, repotype.CreateRentpointInput{
 		Name: in.Name,
 		Addr: in.Addr,
 	})
 	if err != nil {
-		return entity.RentPoint{}, fmt.Errorf("RentPointUseCase - Create - rp.repo.Create: %w", err)
+		if errors.Is(err, repoerrors.ErrRentPointAlreadyExists) {
+			return entity.RentPoint{}, ErrRentPointAlreadyExists
+		}
+		rp.l.Error("RentPointUseCase - Create - rp.repo.Create: %v", err)
+		return entity.RentPoint{}, ErrCreateRentpoint
 	}
 
 	return point, nil

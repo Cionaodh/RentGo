@@ -2,13 +2,15 @@ package pgdb
 
 import (
 	"EasyRentGo/internal/entity"
+	"EasyRentGo/internal/repo/repoerrors"
 	rp "EasyRentGo/internal/repo/repotypes"
 	"EasyRentGo/pkg/postgres"
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 // RentpointRepo -.
@@ -24,23 +26,19 @@ func NewRentpointRepo(pg *postgres.Postgres) *RentpointRepo {
 // Create - Создание новой точки проката.
 func (r *RentpointRepo) Create(ctx context.Context, rp rp.CreateRentpointInput) (entity.RentPoint, error) {
 	sql := `
-		INSERT INTO rentpoints (name, addr)
-		VALUES ($1, $2)
-		RETURNING id, name, addr;
-	`
+        INSERT INTO rentpoints (name, addr)
+        VALUES ($1, $2)
+        RETURNING id, name, addr;
+    `
 
-	rows, err := r.Pool.Query(ctx, sql,
-		rp.Name,
-		rp.Addr,
-	)
-	// _, err := r.Pool.Exec(ctx, sql, rp.Name, rp.Addr)
+	var point entity.RentPoint
+	err := r.Pool.QueryRow(ctx, sql, rp.Name, rp.Addr).Scan(&point.ID, &point.Name, &point.Addr)
 	if err != nil {
-		return entity.RentPoint{}, fmt.Errorf("RentpointRepo - Create - r.Pool.Query: %w", err)
-	}
-
-	point, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[entity.RentPoint])
-	if err != nil {
-		return entity.RentPoint{}, fmt.Errorf("pgdb.RentPoint - Create - pgx.CollectExactlyOneRow: %w", err)
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return entity.RentPoint{}, repoerrors.ErrRentPointAlreadyExists
+		}
+		return entity.RentPoint{}, fmt.Errorf("RentpointRepo - Create: %w", err)
 	}
 
 	return point, nil
@@ -105,6 +103,9 @@ func (r *RentpointRepo) GetByID(ctx context.Context, id uuid.UUID) (entity.Produ
 	}
 
 	return rp, nil
+
+	// TODO: разбить sql запрос в рамках одной транзакции
+	// TODO: добавить обработку ошибки NotFound
 }
 
 func (r *RentpointRepo) Delete(ctx context.Context, id uuid.UUID) error {
