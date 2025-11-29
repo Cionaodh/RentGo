@@ -3,6 +3,7 @@ package usecase
 import (
 	"EasyRentGo/internal/entity"
 	"EasyRentGo/internal/repo"
+	"EasyRentGo/pkg/logger"
 	"context"
 
 	"github.com/google/uuid"
@@ -68,10 +69,10 @@ type UsecaseDependencies struct {
 	Repos *repo.Repositories
 }
 
-func NewUsecase(d UsecaseDependencies) *Usecases {
+func NewUsecase(d UsecaseDependencies, l logger.Interface) *Usecases {
 	return &Usecases{
-		RentPoint: NewRentPointUsecase(d.Repos.RentPoint, d.Repos.Product),
-		Template:  NewTeplateProductUsecase(d.Repos.TemplateProduct),
-		Product:   NewProductUsecase(d.Repos.Product, d.Repos.TemplateProduct),
+		RentPoint: NewRentPointUsecase(d.Repos.RentPoint, d.Repos.Product, l),
+		Template:  NewTeplateProductUsecase(d.Repos.TemplateProduct, l),
+		Product:   NewProductUsecase(d.Repos.Product, d.Repos.TemplateProduct, l),
 	}
 }

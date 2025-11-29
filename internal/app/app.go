@@ -14,7 +14,7 @@ import (
 	"syscall"
 )
 
-func Run(cfg *config.Config, l *logger.Logger) {
+func Run(cfg *config.Config, l logger.Interface) {
 
 	// Postgres
 	l.Info("Initializing postgres...")
@@ -28,7 +28,7 @@ func Run(cfg *config.Config, l *logger.Logger) {
 	l.Info("Initializing services and repos...")
 	uc := usecase.NewUsecase(usecase.UsecaseDependencies{
 		Repos: repo.NewPostgresRepo(pg),
-	})
+	}, l)
 
 	// init server
 	httpServer := httpserver.New(httpserver.Port(cfg.HTTP.Port), httpserver.Prefork(cfg.HTTP.UsePreforkMode))

@@ -4,6 +4,7 @@ import (
 	"EasyRentGo/internal/entity"
 	"EasyRentGo/internal/repo"
 	repotype "EasyRentGo/internal/repo/repotypes"
+	"EasyRentGo/pkg/logger"
 	"context"
 	"errors"
 	"fmt"
@@ -14,10 +15,11 @@ import (
 type ProductUsecase struct {
 	productRepo  repo.Product
 	templateRepo repo.TemplateProduct
+	l            logger.Interface
 }
 
-func NewProductUsecase(p repo.Product, t repo.TemplateProduct) *ProductUsecase {
-	return &ProductUsecase{p, t}
+func NewProductUsecase(p repo.Product, t repo.TemplateProduct, l logger.Interface) *ProductUsecase {
+	return &ProductUsecase{p, t, l}
 }
 
 //methods

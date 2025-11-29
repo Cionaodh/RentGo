@@ -4,6 +4,7 @@ import (
 	"EasyRentGo/internal/entity"
 	"EasyRentGo/internal/repo"
 	repotype "EasyRentGo/internal/repo/repotypes"
+	"EasyRentGo/pkg/logger"
 	"context"
 	"errors"
 	"fmt"
@@ -13,12 +14,11 @@ import (
 
 type TeplateProductUsecase struct {
 	repo repo.TemplateProduct
+	l    logger.Interface
 }
 
-func NewTeplateProductUsecase(r repo.TemplateProduct) *TeplateProductUsecase {
-	return &TeplateProductUsecase{
-		repo: r,
-	}
+func NewTeplateProductUsecase(r repo.TemplateProduct, l logger.Interface) *TeplateProductUsecase {
+	return &TeplateProductUsecase{r, l}
 }
 
 func (uc *TeplateProductUsecase) Create(ctx context.Context, t CreateTemplateInput) (entity.ProductTemp, error) {

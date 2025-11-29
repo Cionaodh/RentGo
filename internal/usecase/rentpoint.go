@@ -4,6 +4,7 @@ import (
 	"EasyRentGo/internal/entity"
 	"EasyRentGo/internal/repo"
 	repotype "EasyRentGo/internal/repo/repotypes"
+	"EasyRentGo/pkg/logger"
 	"context"
 	"fmt"
 
@@ -13,12 +14,14 @@ import (
 type RentPointUsecase struct {
 	pointRepo   repo.RentPoint
 	productRepo repo.Product
+	l           logger.Interface
 }
 
-func NewRentPointUsecase(rp repo.RentPoint, p repo.Product) *RentPointUsecase {
+func NewRentPointUsecase(rp repo.RentPoint, p repo.Product, l logger.Interface) *RentPointUsecase {
 	return &RentPointUsecase{
 		pointRepo:   rp,
 		productRepo: p,
+		l:           l,
 	}
 }
 
