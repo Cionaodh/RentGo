@@ -38,7 +38,7 @@ func (rp *RentPointUsecase) CreateRentpoint(ctx context.Context, in CreateRentpo
 		Addr: in.Addr,
 	})
 	if err != nil {
-		if errors.Is(err, repoerrors.ErrRentPointAlreadyExists) {
+		if errors.Is(err, repoerrors.ErrAlreadyExists) {
 			return entity.RentPoint{}, ErrRentPointAlreadyExists
 		}
 		rp.l.Error("RentPointUseCase - Create - rp.repo.Create: %v", err)
@@ -81,5 +81,4 @@ func (p *RentPointUsecase) AddProduct(ctx context.Context, in AddProductsInput) 
 		return entity.ProductRentPoint{}, fmt.Errorf("RentPointUsecase - AddProduct - p.pointRepo.AddProducts: %w", err)
 	}
 	return rentpoint, nil
-	// TODO: Добавить проверку, что продукты доступны (не привязаны к другой точке)
 }

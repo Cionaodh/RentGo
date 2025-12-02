@@ -6,7 +6,6 @@ import (
 	repotype "EasyRentGo/internal/repo/repotypes"
 	"EasyRentGo/pkg/logger"
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -22,13 +21,10 @@ func NewProductUsecase(p repo.Product, t repo.TemplateProduct, l logger.Interfac
 	return &ProductUsecase{p, t, l}
 }
 
-//methods
-
 func (p *ProductUsecase) Create(ctx context.Context, in CreateProductInput) (entity.Products, error) {
-	// проверяем поле Number
+	// проверяем количество создаваемых объектов
 	if in.Number <= 0 || in.Number > 100000 {
-		// TODO: обработать как ошибку запроса 300
-		return entity.Products{}, errors.New("invalid product number")
+		return entity.Products{}, ErrNumberProduct
 	}
 
 	product := repotype.CreateProductInput{
@@ -39,7 +35,9 @@ func (p *ProductUsecase) Create(ctx context.Context, in CreateProductInput) (ent
 
 	products, err := p.productRepo.Create(ctx, product)
 	if err != nil {
-		return entity.Products{}, fmt.Errorf("ProductUsecase - Create - p.productRepo.Create: %w", err)
+		// TODO: обработка ожидаемых ошибок: 1) несуществующий шаблон
+		p.l.Error("ProductUsecase - Create - p.productRepo.Create: %v", err)
+		return entity.Products{}, ErrCreateProduct
 	}
 
 	return products, nil

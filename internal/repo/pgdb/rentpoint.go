@@ -36,9 +36,9 @@ func (r *RentpointRepo) Create(ctx context.Context, rp rp.CreateRentpointInput) 
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			return entity.RentPoint{}, repoerrors.ErrRentPointAlreadyExists
+			return entity.RentPoint{}, repoerrors.ErrAlreadyExists
 		}
-		return entity.RentPoint{}, fmt.Errorf("RentpointRepo - Create: %w", err)
+		return entity.RentPoint{}, fmt.Errorf("RentpointRepo - Create - QueryRow().Scan(): %w", err)
 	}
 
 	return point, nil
@@ -138,6 +138,7 @@ func (r *RentpointRepo) Delete(ctx context.Context, id uuid.UUID) error {
 }
 
 func (r *RentpointRepo) AddProducts(ctx context.Context, in rp.AddProductsInput) (entity.ProductRentPoint, error) {
+	// TODO: Добавить проверку, что продукты доступны (не привязаны к другой точке)
 	sqlUpdate := `
 	UPDATE products
 	SET 

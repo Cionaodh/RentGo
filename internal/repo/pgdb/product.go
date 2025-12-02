@@ -44,7 +44,7 @@ func (p *ProductRepo) Create(ctx context.Context, in rp.CreateProductInput) (ent
 		&product.IDs,
 	)
 	if err != nil {
-		return entity.Products{}, fmt.Errorf("failed to create products: %w", err)
+		return entity.Products{}, fmt.Errorf("ProductRepo - Create - QueryRow()Scan(): %w", err)
 	}
 
 	return product, nil
@@ -65,7 +65,7 @@ func (p *ProductRepo) GetAll(ctx context.Context) ([]entity.Product, error) {
 
 	rows, err := p.Pool.Query(ctx, sql)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get all products: %w", err)
+		return nil, fmt.Errorf("ProductRepo - GetAll - Query(): %w", err)
 	}
 	defer rows.Close()
 
@@ -80,13 +80,13 @@ func (p *ProductRepo) GetAll(ctx context.Context) ([]entity.Product, error) {
 			&product.RentPointID,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("failed to scan product row: %w", err)
+			return nil, fmt.Errorf("ProductRepo - GetAll - Scan(): %w", err)
 		}
 		products = append(products, product)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("error during rows iteration: %w", err)
+		return nil, fmt.Errorf("ProductRepo - GetAll - rows.Err(): %w", err)
 	}
 
 	return products, nil
