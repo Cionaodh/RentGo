@@ -2,6 +2,7 @@ package v1
 
 import (
 	"EasyRentGo/internal/usecase"
+	"errors"
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
@@ -26,18 +27,15 @@ type ProductDTO struct {
 }
 
 func (p *productRoutes) create(ctx *fiber.Ctx) error {
-	// Считываем тело запроса в DTO
 	var body ProductDTO
 	if err := ctx.BodyParser(&body); err != nil {
 		return errorResponse(ctx, http.StatusBadRequest, "invalid request body")
 	}
 
-	// Валидируем
 	if err := p.v.Struct(body); err != nil {
 		return errorResponse(ctx, http.StatusBadRequest, "invalid request body")
 	}
 
-	// Вызываем Usecase
 	products, err := p.pointUsecase.Create(
 		ctx.UserContext(),
 		usecase.CreateProductInput{
@@ -45,6 +43,9 @@ func (p *productRoutes) create(ctx *fiber.Ctx) error {
 			Number:     body.Number,
 		})
 	if err != nil {
+		if errors.Is(err, usecase.ErrNumberProduct) {
+			return errorResponse(ctx, http.StatusBadRequest, err.Error())
+		}
 		return errorResponse(ctx, http.StatusInternalServerError, "product service problems")
 	}
 

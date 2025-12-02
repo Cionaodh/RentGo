@@ -25,8 +25,6 @@ type RentpointDTO struct {
 	Addr string `json:"addr"       validate:"required"  example:"г. Калининград, ул Баласа"`
 }
 
-// Обработчики маршрутов
-
 func (r *rentPointRoutes) create(ctx *fiber.Ctx) error {
 	var body RentpointDTO
 
