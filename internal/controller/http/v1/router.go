@@ -12,30 +12,30 @@ import (
 func NewRoutes(apiV1Group fiber.Router, uc *usecase.Usecases) {
 
 	//
-	rentPointGroup := apiV1Group.Group("/rentpoint")
+	rentPointGroup := apiV1Group.Group("/rentpoints")
 	{
 		r := newRentPointRoutes(uc.RentPoint, validator.New(validator.WithRequiredStructEnabled()))
-		rentPointGroup.Post("/", r.create)         // POST /v1/rentpoint/
-		rentPointGroup.Get("/", r.getAll)          // GET  /v1/rentpoint/
-		rentPointGroup.Get("/:id", r.getByID)      // GET  /v1/rentpoint/{id}
-		rentPointGroup.Post("/:id", r.addProducts) // POST  /v1/rentpoint/{id}
+		rentPointGroup.Post("/", r.create)         // POST /v1/rentpoints/
+		rentPointGroup.Get("/", r.getAll)          // GET  /v1/rentpoints/
+		rentPointGroup.Get("/:id", r.getByID)      // GET  /v1/rentpoints/{id}
+		rentPointGroup.Post("/:id", r.addProducts) // POST  /v1/rentpoints/{id} -- TODO: Удалить конечную точку - данный метод должен вызываться в /v1/product
 	}
 
 	//
-	templateGroup := apiV1Group.Group("/template")
+	templateGroup := apiV1Group.Group("/templates")
 	{
 		t := newTemplateRoutes(uc.Template, validator.New(validator.WithRequiredStructEnabled()))
-		templateGroup.Post("/", t.create)    // POST /v1/template/
-		templateGroup.Get("/", t.getAll)     // GET  /v1/template/
-		templateGroup.Get("/:id", t.getByID) // GET  /v1/template/{id}
+		templateGroup.Post("/", t.create)    // POST /v1/templates/
+		templateGroup.Get("/", t.getAll)     // GET  /v1/templates/
+		templateGroup.Get("/:id", t.getByID) // GET  /v1/templates/{id}
 	}
 
 	//
-	productGroup := apiV1Group.Group("/product")
+	productGroup := apiV1Group.Group("/products")
 	{
 		p := newProductRoutes(uc.Product, validator.New(validator.WithRequiredStructEnabled()))
-		productGroup.Post("/", p.create)    // POST /v1/product
-		productGroup.Get("/", p.getAll)     // POST /v1/product
-		productGroup.Get("/:id", p.getByID) // POST /v1/product/{id}
+		productGroup.Post("/", p.create)    // POST /v1/products/
+		productGroup.Get("/", p.getAll)     // GET /v1/products/
+		productGroup.Get("/:id", p.getByID) // GET /v1/products/{id}
 	}
 }
