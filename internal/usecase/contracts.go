@@ -59,10 +59,27 @@ type Product interface {
 	// RentFinish(context.Context, uuid.UUID, uuid.UUID) error
 }
 
+type CreateOrderInput struct {
+	ProductID uuid.UUID
+}
+
+type CompleteOrderInput struct {
+	ID               uuid.UUID
+	FinishingPointID uuid.UUID
+}
+
+type Order interface {
+	Create(context.Context, CreateOrderInput) (entity.Order, error)
+	GetAll(context.Context) ([]entity.Order, error)
+	GetByID(context.Context, uuid.UUID) (entity.Order, error)
+	Complete(context.Context, CompleteOrderInput) (entity.Order, error)
+}
+
 type Usecases struct {
 	RentPoint
 	Template
 	Product
+	Order
 }
 
 type UsecaseDependencies struct {
@@ -74,5 +91,6 @@ func NewUsecase(d UsecaseDependencies, l logger.Interface) *Usecases {
 		RentPoint: NewRentPointUsecase(d.Repos.RentPoint, d.Repos.Product, l),
 		Template:  NewTeplateProductUsecase(d.Repos.TemplateProduct, l),
 		Product:   NewProductUsecase(d.Repos.Product, d.Repos.TemplateProduct, l),
+		Order:     NewOrderUsecase(d.Repos.Order, l),
 	}
 }

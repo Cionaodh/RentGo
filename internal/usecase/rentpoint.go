@@ -81,4 +81,8 @@ func (p *RentPointUsecase) AddProduct(ctx context.Context, in AddProductsInput) 
 		return entity.ProductRentPoint{}, fmt.Errorf("RentPointUsecase - AddProduct - p.pointRepo.AddProducts: %w", err)
 	}
 	return rentpoint, nil
+
+	// TODO: p.pointRepo.AddProducts - добавление продукта или продуктов - точке проката - в рамках транзакции
+	// TODO: p.productRepo.View - вывод продуктов принадлежащих точке проката
+
 }

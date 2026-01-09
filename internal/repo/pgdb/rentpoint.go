@@ -24,7 +24,7 @@ func NewRentpointRepo(pg *postgres.Postgres) *RentpointRepo {
 }
 
 // Create - Создание новой точки проката.
-func (r *RentpointRepo) Create(ctx context.Context, rp rp.CreateRentpointInput) (entity.RentPoint, error) {
+func (r *RentpointRepo) Create(ctx context.Context, in rp.CreateRentpointInput) (entity.RentPoint, error) {
 	sql := `
         INSERT INTO rentpoints (name, addr)
         VALUES ($1, $2)
@@ -32,7 +32,7 @@ func (r *RentpointRepo) Create(ctx context.Context, rp rp.CreateRentpointInput) 
     `
 
 	var point entity.RentPoint
-	err := r.Pool.QueryRow(ctx, sql, rp.Name, rp.Addr).Scan(&point.ID, &point.Name, &point.Addr)
+	err := r.Pool.QueryRow(ctx, sql, in.Name, in.Addr).Scan(&point.ID, &point.Name, &point.Addr)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {

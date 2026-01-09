@@ -62,6 +62,7 @@ func (uc *TeplateProductUsecase) GetByID(ctx context.Context, id uuid.UUID) (ent
 
 	template, err := uc.repo.GetByID(ctx, id)
 	if err != nil {
+		uc.l.Error("TeplateProductUsecase - GetByID - uc.repo.GetByID: %v", err)
 		return entity.ProductTemp{}, err
 	}
 

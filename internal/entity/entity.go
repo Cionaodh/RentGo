@@ -1,6 +1,8 @@
 package entity
 
 import (
+	"time"
+
 	"github.com/google/uuid"
 )
 
@@ -54,12 +56,37 @@ type Products struct {
 	TemplateID  uuid.UUID     `json:"template_id"`
 }
 
+type ProductsRP struct {
+	Id     uuid.UUID     `json:"id"`
+	Name   string        `json:"name"`
+	Status ProductStatus `json:"status"`
+	Price  float64       `json:"price"`
+}
+
 type Product struct {
 	ID          uuid.UUID     `json:"id"`
 	Name        string        `json:"name"`
 	Price       float64       `json:"price"`
 	Status      ProductStatus `json:"status"`
 	RentPointID uuid.UUID     `json:"rentpoint_id"`
+}
+
+type OrderStatus string
+
+const (
+	StatusActive    OrderStatus = "Active"    // Активный
+	StatusCompleted OrderStatus = "Completed" // Завершенный
+	StatusExpired   OrderStatus = "Expired"   // Просрочен - если пользователь не завершил поездку за купленное время
+)
+
+type Order struct {
+	ID            uuid.UUID   `json:"id"`
+	Status        OrderStatus `json:"status"`
+	ProductID     uuid.UUID   `json:"product_id"`
+	StartPointID  uuid.UUID   `json:"start_point_id"`
+	FigishPointID *uuid.UUID  `json:"finish_point_id,omitempty"` // Изменено на указатель
+	StartedAT     time.Time   `json:"start_at"`
+	FinishedAT    *time.Time  `json:"finish_at,omitempty"` // Изменено на указатель
 }
 
 // // ParseProductStatus конвертирует строку в ProductStatus (с проверкой валидности).

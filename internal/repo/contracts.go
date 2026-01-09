@@ -14,8 +14,8 @@ type RentPoint interface {
 	Create(context.Context, rp.CreateRentpointInput) (entity.RentPoint, error)
 	GetAll(context.Context) ([]entity.RentPoint, error)
 	GetByID(context.Context, uuid.UUID) (entity.ProductRentPoint, error)
-	Delete(context.Context, uuid.UUID) error
-	AddProducts(context.Context, rp.AddProductsInput) (entity.ProductRentPoint, error) // Прикрепление продукта к точке проката
+	// Delete(context.Context, uuid.UUID) error
+	AddProducts(context.Context, rp.AddProductsInput) (entity.ProductRentPoint, error) // Только добавляет продукт
 }
 
 type TemplateProduct interface {
@@ -28,7 +28,9 @@ type Product interface {
 	Create(context.Context, rp.CreateProductInput) (entity.Products, error)
 	GetAll(context.Context) ([]entity.Product, error)
 	GetByID(context.Context, uuid.UUID) (entity.Product, error)
-	GetProductsByRentpoint(context.Context, uuid.UUID) ([]entity.Products, error)
+	GetByRentpoint(context.Context, uuid.UUID) ([]entity.ProductsRP, error)
+
+	// GetByParameters() ([]entity.Products, error)
 
 	// GetByStatus(context.Context, entity.ProductStatus) ([]entity.Product, error)
 	// SetStatus(context.Context, uuid.UUID, entity.ProductStatus) error
@@ -37,10 +39,18 @@ type Product interface {
 	// ReserveProduct(context.Context, uuid.UUID) (entity.Product, error)
 }
 
+type Order interface {
+	Create(context.Context, rp.CreateOrderInput) (entity.Order, error)
+	GetAll(context.Context) ([]entity.Order, error)
+	GetByID(context.Context, uuid.UUID) (entity.Order, error)
+	Complete(context.Context, rp.CompleteOrderInput) (entity.Order, error)
+}
+
 type Repositories struct {
 	RentPoint
 	TemplateProduct
 	Product
+	Order
 }
 
 func NewPostgresRepo(pg *postgres.Postgres) *Repositories {
@@ -48,5 +58,6 @@ func NewPostgresRepo(pg *postgres.Postgres) *Repositories {
 		RentPoint:       pgdb.NewRentpointRepo(pg),
 		TemplateProduct: pgdb.NewProductTemplateRepo(pg),
 		Product:         pgdb.NewProductRepo(pg),
+		Order:           pgdb.NewOrderRepo(pg),
 	}
 }

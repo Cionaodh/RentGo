@@ -69,6 +69,25 @@ func (pt *ProductTemplateRepo) GetAll(ctx context.Context) ([]entity.ProductTemp
 	return templates, nil
 }
 
-func (pt *ProductTemplateRepo) GetByID(context.Context, uuid.UUID) (entity.ProductTemp, error) {
-	return entity.ProductTemp{}, nil
+func (pt *ProductTemplateRepo) GetByID(ctx context.Context, id uuid.UUID) (entity.ProductTemp, error) {
+	sql := `
+		SELECT t.id, t.name, t.description, t.price
+		FROM templates t
+		WHERE id = $1
+	`
+
+	var tmp entity.ProductTemp
+	err := pt.Pool.QueryRow(ctx, sql, id).Scan(&tmp.ID, &tmp.Name, &tmp.Description, &tmp.Price)
+	if err != nil {
+		return entity.ProductTemp{}, fmt.Errorf("ProductTemplateRepo - GetByID - p.Pool.QueryRow.Scan: %w", err)
+	}
+
+	return tmp, nil
 }
+
+// type ProductTemp struct {
+// 	ID          uuid.UUID `json:"id"`
+// 	Name        string    `json:"name"`
+// 	Description string    `json:"desc"`
+// 	Price       float64   `json:"price"`
+// }

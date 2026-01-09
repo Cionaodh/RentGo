@@ -38,4 +38,14 @@ func NewRoutes(apiV1Group fiber.Router, uc *usecase.Usecases) {
 		productGroup.Get("/", p.getAll)     // GET /v1/products/
 		productGroup.Get("/:id", p.getByID) // GET /v1/products/{id}
 	}
+
+	//
+	orderGroup := apiV1Group.Group("/orders")
+	{
+		o := newOrderRoutes(uc.Order, validator.New(validator.WithRequiredStructEnabled()))
+		orderGroup.Post("/", o.create)               // POST /v1/orders/
+		orderGroup.Get("/", o.getAll)                // GET /v1/orders/
+		orderGroup.Get("/:id", o.getByID)            // GET /v1/orders/{id}
+		orderGroup.Post("/:id/complete", o.complete) // PATCH /v1/orders/{id}
+	}
 }

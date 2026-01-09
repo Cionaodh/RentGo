@@ -121,10 +121,35 @@ func (p *ProductRepo) GetByID(ctx context.Context, id uuid.UUID) (entity.Product
 	return product, nil
 }
 
-func (p *ProductRepo) GetProductsByRentpoint(context.Context, uuid.UUID) ([]entity.Products, error) {
-	// TODO: Находим все продуткы принадлежащие пункту проката по id
-	// TODO: JOIN с таблицей шаблонов (чтобы выводилась вся информация по продукту)
-	return []entity.Products{}, nil
+func (p *ProductRepo) GetByRentpoint(ctx context.Context, id uuid.UUID) ([]entity.ProductsRP, error) {
+
+	sqlGet := `
+		SELECT p.id, t,name, p.status, t.price
+		FROM products p
+		LEFT JOIN templates t ON p.template_id = t.id
+		WHERE p.id = $1
+	`
+
+	rows, err := p.Pool.Query(ctx, sqlGet, id)
+	if err != nil {
+		return nil, fmt.Errorf("ProductRepo - GetByRentpoint - r.Pool.Query: %w", err)
+	}
+	defer rows.Close()
+
+	var products []entity.ProductsRP
+	for rows.Next() {
+		var prod entity.ProductsRP
+		err := rows.Scan(&prod.Id, &prod.Name, &prod.Status, &prod.Price)
+		if err != nil {
+			return nil, fmt.Errorf("ProductRepo - GetByRentpoint - rows.Scan: %w", err)
+		}
+		products = append(products, prod)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("ProductRepo - GetByRentpoint - rows.Err: %w", err)
+	}
+
+	return products, nil
 }
 
 // func (p *ProductRepo) GetByStatus(context.Context, entity.ProductStatus) ([]entity.Product, error) {
