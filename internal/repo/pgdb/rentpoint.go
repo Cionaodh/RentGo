@@ -10,20 +10,18 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
-// RentpointRepo -.
 type RentpointRepo struct {
 	*postgres.Postgres
 }
 
-// New -.
 func NewRentpointRepo(pg *postgres.Postgres) *RentpointRepo {
 	return &RentpointRepo{pg}
 }
 
-// Create - Создание новой точки проката.
 func (r *RentpointRepo) Create(ctx context.Context, in rp.CreateRentpointInput) (entity.RentPoint, error) {
 	sql := `
         INSERT INTO rentpoints (name, addr)
@@ -32,11 +30,15 @@ func (r *RentpointRepo) Create(ctx context.Context, in rp.CreateRentpointInput) 
     `
 
 	var point entity.RentPoint
-	err := r.Pool.QueryRow(ctx, sql, in.Name, in.Addr).Scan(&point.ID, &point.Name, &point.Addr)
+	err := r.Pool.QueryRow(ctx, sql, in.Name, in.Addr).
+		Scan(&point.ID, &point.Name, &point.Addr)
 	if err != nil {
 		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			return entity.RentPoint{}, repoerrors.ErrAlreadyExists
+		if errors.As(err, &pgErr) {
+			switch pgErr.Code {
+			case "23505":
+				return entity.RentPoint{}, repoerrors.ErrAlreadyExists
+			}
 		}
 		return entity.RentPoint{}, fmt.Errorf("RentpointRepo - Create - QueryRow().Scan(): %w", err)
 	}
@@ -98,28 +100,36 @@ func (r *RentpointRepo) GetByID(ctx context.Context, id uuid.UUID) (entity.Produ
 	`
 
 	var rp entity.ProductRentPoint
-	if err := r.Pool.QueryRow(ctx, sql, id).Scan(&rp.ID, &rp.Name, &rp.Addr, &rp.Products); err != nil {
+	err := r.Pool.QueryRow(ctx, sql, id).
+		Scan(&rp.ID, &rp.Name, &rp.Addr, &rp.Products)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return entity.ProductRentPoint{}, repoerrors.ErrNotFound
+		}
 		return entity.ProductRentPoint{}, fmt.Errorf("RentpointRepo - GetByID - r.Pool.QueryRow: %w", err)
 	}
 
 	return rp, nil
-
-	// TODO: разбить sql запрос в рамках одной транзакции
-	// TODO: добавить обработку ошибки NotFound
 }
 
 func (r *RentpointRepo) Delete(ctx context.Context, id uuid.UUID) error {
-	// Сначала удаляем связи с продуктами
+
+	tx, err := r.Pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("RentpointRepo - Delete - BeginTX(): %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	// Удаляем связи с продуктами
 	deleteProductsSQL := `
 		DELETE FROM rent_point_products
 		WHERE rent_point_id = $1
 	`
-	_, err := r.Pool.Exec(ctx, deleteProductsSQL, id)
-	if err != nil {
+	if _, err := r.Pool.Exec(ctx, deleteProductsSQL, id); err != nil {
 		return fmt.Errorf("RentpointRepo - Delete - delete products: %w", err)
 	}
 
-	// Затем удаляем саму точку проката
 	deleteSQL := `
 		DELETE FROM rent_points
 		WHERE id = $1
@@ -131,7 +141,11 @@ func (r *RentpointRepo) Delete(ctx context.Context, id uuid.UUID) error {
 	}
 
 	if result.RowsAffected() == 0 {
-		return fmt.Errorf("RentpointRepo - Delete - point not found")
+		return repoerrors.ErrNotFound
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("RentpointRepo - Delete - Commit(): %w", err)
 	}
 
 	return nil

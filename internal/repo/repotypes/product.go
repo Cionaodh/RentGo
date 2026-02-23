@@ -11,3 +11,9 @@ type CreateProductInput struct {
 	Status     entity.ProductStatus
 	Number     int
 }
+
+type ProductParams struct {
+	Status      *entity.ProductStatus
+	RentPointID *uuid.UUID
+	TemplateID  *uuid.UUID
+}

@@ -2,6 +2,7 @@ package pgdb
 
 import (
 	"EasyRentGo/internal/entity"
+	"EasyRentGo/internal/repo/repoerrors"
 	repotype "EasyRentGo/internal/repo/repotypes"
 	"EasyRentGo/pkg/postgres"
 	"context"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 type OrderRepo struct {
@@ -22,48 +24,51 @@ func NewOrderRepo(pg *postgres.Postgres) *OrderRepo {
 
 func (o *OrderRepo) Create(ctx context.Context, in repotype.CreateOrderInput) (entity.Order, error) {
 
-	var order entity.Order
+	tx, err := o.Pool.Begin(ctx)
+	if err != nil {
+		return entity.Order{}, fmt.Errorf("OrderRepo - Create - BeginTX(): %w", err)
+	}
+	defer tx.Rollback(ctx)
 
-	err := pgx.BeginTxFunc(ctx, o.Pool, pgx.TxOptions{}, func(tx pgx.Tx) error {
+	var startPointID uuid.UUID
 
-		const queryRentPointID = `
+	// проверяем что продукт свободен и получаем его точку проката
+	const selectProductQuery = `
 		SELECT rentpoint_id 
 		FROM public.products 
-		WHERE 
-			id = $1 AND 
-			status = 'Free';
+		WHERE id = $1 
+			AND status = 'Free'
+		FOR UPDATE;
 		`
 
-		var startPointID uuid.UUID
-		err := tx.QueryRow(ctx, queryRentPointID, in.ProductID).Scan(&startPointID)
-		if err != nil {
-			if errors.Is(err, pgx.ErrNoRows) {
-				return err // entity.ErrProductNotAvailable // TODO:
-			}
-			return fmt.Errorf("rent product: %w", err)
+	err = tx.QueryRow(ctx, selectProductQuery, in.ProductID).Scan(&startPointID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return entity.Order{}, repoerrors.ErrProductNotAvailable // продукта не существует
 		}
+		return entity.Order{}, fmt.Errorf("OrderRepo - Create - QueryRow(): %w", err)
+	}
 
-		const reserveProductQuery = `
+	// Резервируем продукт если он
+	const reserveProductQuery = `
 			UPDATE public.products
          SET status = 'Rented',
             rentpoint_id = NULL
-         WHERE id = $1
-            AND status = 'Free'
-            AND rentpoint_id IS NOT NULL
+         WHERE id = $1; 
 		`
 
-		cmdTag, err := tx.Exec(ctx, reserveProductQuery, in.ProductID)
-		if err != nil {
-			return fmt.Errorf("err: %w", err)
-		}
+	cmdTag, err := tx.Exec(ctx, reserveProductQuery, in.ProductID)
+	if err != nil {
+		return entity.Order{}, fmt.Errorf("OrderRepo - Create - Exec(): %w", err)
+	}
 
-		// Проверяем сколько строк было изменено
-		if cmdTag.RowsAffected() == 0 {
-			return fmt.Errorf("ErrProductStateInvalid") // entity.ErrProductStateInvalid // TODO:
-		}
+	// Проверяем была ли изменена строка
+	if cmdTag.RowsAffected() == 0 {
+		return entity.Order{}, repoerrors.ErrProductStateInvalid // строка не была изменена
+	}
 
-		// 2. Создаём заказ
-		const sqlInsertOrder = `
+	// Создаём заказ
+	const insertOrderQuery = `
             INSERT INTO public.orders (
                 product_id,
                 starting_point_id
@@ -77,26 +82,33 @@ func (o *OrderRepo) Create(ctx context.Context, in repotype.CreateOrderInput) (e
                 finishing_point_id,
                 rent_started_at,
                 rent_finished_at;
-        `
+      `
 
-		return tx.QueryRow(
-			ctx,
-			sqlInsertOrder,
-			in.ProductID,
-			startPointID,
-		).Scan(
-			&order.ID,
-			&order.Status,
-			&order.ProductID,
-			&order.StartPointID,
-			&order.FigishPointID,
-			&order.StartedAT,
-			&order.FinishedAT,
-		)
-	})
+	var order entity.Order
+
+	err = tx.QueryRow(ctx, insertOrderQuery, in.ProductID, startPointID).Scan(
+		&order.ID,
+		&order.Status,
+		&order.ProductID,
+		&order.StartPointID,
+		&order.FigishPointID,
+		&order.StartedAT,
+		&order.FinishedAT,
+	)
 
 	if err != nil {
-		return entity.Order{}, err
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			switch pgErr.Code {
+			case "23503":
+				return entity.Order{}, repoerrors.ErrForeignKeyViolation // если внешний ключ не существует
+			}
+		}
+		return entity.Order{}, fmt.Errorf("OrderRepo - Create - QueryRow(): %w", err)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return entity.Order{}, fmt.Errorf("OrderRepo - Create - Commit(): %w", err)
 	}
 
 	return order, nil
@@ -123,10 +135,10 @@ func (o *OrderRepo) GetAll(ctx context.Context) ([]entity.Order, error) {
 	}
 	defer rows.Close()
 
-	orders := make([]entity.Order, 0, 32)
+	var orders []entity.Order
 	for rows.Next() {
 		var order entity.Order
-		err := rows.Scan(
+		if err := rows.Scan(
 			&order.ID,
 			&order.Status,
 			&order.ProductID,
@@ -134,8 +146,7 @@ func (o *OrderRepo) GetAll(ctx context.Context) ([]entity.Order, error) {
 			&order.FigishPointID,
 			&order.StartedAT,
 			&order.FinishedAT,
-		)
-		if err != nil {
+		); err != nil {
 			return nil, fmt.Errorf("OrderRepo - GetAll - rows.Scan: %w", err)
 		}
 		orders = append(orders, order)
@@ -149,7 +160,7 @@ func (o *OrderRepo) GetAll(ctx context.Context) ([]entity.Order, error) {
 
 func (o *OrderRepo) GetByID(ctx context.Context, id uuid.UUID) (entity.Order, error) {
 
-	const query = `
+	const selectOrderQuery = `
 		SELECT 
 			id, 
         status, 
@@ -163,7 +174,7 @@ func (o *OrderRepo) GetByID(ctx context.Context, id uuid.UUID) (entity.Order, er
 	`
 
 	var order entity.Order
-	if err := o.Pool.QueryRow(ctx, query, id).Scan(
+	if err := o.Pool.QueryRow(ctx, selectOrderQuery, id).Scan(
 		&order.ID,
 		&order.Status,
 		&order.ProductID,
@@ -172,7 +183,10 @@ func (o *OrderRepo) GetByID(ctx context.Context, id uuid.UUID) (entity.Order, er
 		&order.StartedAT,
 		&order.FinishedAT,
 	); err != nil {
-		return entity.Order{}, err
+		if errors.Is(err, pgx.ErrNoRows) {
+			return entity.Order{}, repoerrors.ErrNotFound // заказ не найден
+		}
+		return entity.Order{}, fmt.Errorf("OrderRepo - GetByID - QueryRow(): %w", err)
 	}
 
 	return order, nil
@@ -180,11 +194,17 @@ func (o *OrderRepo) GetByID(ctx context.Context, id uuid.UUID) (entity.Order, er
 
 func (o *OrderRepo) Complete(ctx context.Context, in repotype.CompleteOrderInput) (entity.Order, error) {
 
+	tx, err := o.Pool.Begin(ctx)
+	if err != nil {
+		return entity.Order{}, fmt.Errorf("OrderRepo - Complete - BeginTX(): %w", err)
+	}
+	defer tx.Rollback(ctx)
+
 	var order entity.Order
 
-	err := pgx.BeginTxFunc(ctx, o.Pool, pgx.TxOptions{}, func(tx pgx.Tx) error {
-
-		const completeOrderQuery = `
+	// TODO: можно разделить запрос на несколько чтобы проверить отдельно существование заказа и его статус
+	// закрытие заказа
+	const completeOrderQuery = `
         UPDATE public.orders
         SET
             status = 'Completed',
@@ -202,28 +222,28 @@ func (o *OrderRepo) Complete(ctx context.Context, in repotype.CompleteOrderInput
             rent_finished_at;
     `
 
-		if err := tx.QueryRow(
-			ctx,
-			completeOrderQuery,
-			in.FinishingPointID,
-			in.ID,
-		).Scan(
-			&order.ID,
-			&order.Status,
-			&order.ProductID,
-			&order.StartPointID,
-			&order.FigishPointID,
-			&order.StartedAT,
-			&order.FinishedAT,
-		); err != nil {
-
-			if errors.Is(err, pgx.ErrNoRows) {
-				return err // entity.ErrOrderNotActive // TODO:
-			}
-			return fmt.Errorf("complete order: %w", err)
+	if err := tx.QueryRow(
+		ctx,
+		completeOrderQuery,
+		in.FinishingPointID,
+		in.ID,
+	).Scan(
+		&order.ID,
+		&order.Status,
+		&order.ProductID,
+		&order.StartPointID,
+		&order.FigishPointID,
+		&order.StartedAT,
+		&order.FinishedAT,
+	); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return entity.Order{}, repoerrors.ErrOrderNotActive // либо заказа не существует, либо у него неверный статус
 		}
+		return entity.Order{}, fmt.Errorf("OrderRepo - Complete - QueryRow(): %w", err)
+	}
 
-		const freeProductQuery = `
+	// освобождение продукта
+	const freeProductQuery = `
         UPDATE public.products
         SET
             rentpoint_id = $1,
@@ -232,26 +252,23 @@ func (o *OrderRepo) Complete(ctx context.Context, in repotype.CompleteOrderInput
           AND status = 'Rented';
     `
 
-		cmdTag, err := tx.Exec(
-			ctx,
-			freeProductQuery,
-			in.FinishingPointID,
-			order.ProductID,
-		)
-		if err != nil {
-			return fmt.Errorf("free product: %w", err)
-		}
-
-		// Проверяем сколько строк было изменено
-		if cmdTag.RowsAffected() == 0 {
-			return fmt.Errorf("ErrProductStateInvalid") // entity.ErrProductStateInvalid // TODO:
-		}
-
-		return nil
-	})
-
+	cmdTag, err := tx.Exec(
+		ctx,
+		freeProductQuery,
+		in.FinishingPointID,
+		order.ProductID,
+	)
 	if err != nil {
-		return entity.Order{}, err
+		return entity.Order{}, fmt.Errorf("OrderRepo - Complete - Exec(): %w", err)
+	}
+
+	// Проверяем сколько строк было изменено
+	if cmdTag.RowsAffected() == 0 {
+		return entity.Order{}, repoerrors.ErrProductStateInvalid // строка не была изменена
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return entity.Order{}, fmt.Errorf("OrderRepo - Complete - Commit(): %w", err)
 	}
 
 	return order, nil

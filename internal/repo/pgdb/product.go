@@ -2,12 +2,17 @@ package pgdb
 
 import (
 	"EasyRentGo/internal/entity"
+	"EasyRentGo/internal/repo/repoerrors"
 	rp "EasyRentGo/internal/repo/repotypes"
 	"EasyRentGo/pkg/postgres"
 	"context"
+	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 type ProductRepo struct {
@@ -43,7 +48,15 @@ func (p *ProductRepo) Create(ctx context.Context, in rp.CreateProductInput) (ent
 		&product.RentPointID,
 		&product.IDs,
 	)
+
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			switch pgErr.Code {
+			case "23503": // если шаблона не существует
+				return entity.Products{}, repoerrors.ErrNotFound
+			}
+		}
 		return entity.Products{}, fmt.Errorf("ProductRepo - Create - QueryRow()Scan(): %w", err)
 	}
 
@@ -72,14 +85,13 @@ func (p *ProductRepo) GetAll(ctx context.Context) ([]entity.Product, error) {
 	var products []entity.Product
 	for rows.Next() {
 		var product entity.Product
-		err := rows.Scan(
+		if err := rows.Scan(
 			&product.ID,
 			&product.Name,
 			&product.Price,
 			&product.Status,
 			&product.RentPointID,
-		)
-		if err != nil {
+		); err != nil {
 			return nil, fmt.Errorf("ProductRepo - GetAll - Scan(): %w", err)
 		}
 		products = append(products, product)
@@ -107,14 +119,16 @@ func (p *ProductRepo) GetByID(ctx context.Context, id uuid.UUID) (entity.Product
 	`
 
 	var product entity.Product
-	err := p.Pool.QueryRow(ctx, sql, id).Scan(
+	if err := p.Pool.QueryRow(ctx, sql, id).Scan(
 		&product.ID,
 		&product.Name,
 		&product.Price,
 		&product.Status,
 		&product.RentPointID,
-	)
-	if err != nil {
+	); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return entity.Product{}, repoerrors.ErrNotFound
+		}
 		return entity.Product{}, fmt.Errorf("ProductRepo - GetByID - p.Pool.QueryRow: %w", err)
 	}
 
@@ -124,7 +138,7 @@ func (p *ProductRepo) GetByID(ctx context.Context, id uuid.UUID) (entity.Product
 func (p *ProductRepo) GetByRentpoint(ctx context.Context, id uuid.UUID) ([]entity.ProductsRP, error) {
 
 	sqlGet := `
-		SELECT p.id, t,name, p.status, t.price
+		SELECT p.id, t.name, p.status, t.price
 		FROM products p
 		LEFT JOIN templates t ON p.template_id = t.id
 		WHERE p.id = $1
@@ -147,6 +161,73 @@ func (p *ProductRepo) GetByRentpoint(ctx context.Context, id uuid.UUID) ([]entit
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("ProductRepo - GetByRentpoint - rows.Err: %w", err)
+	}
+
+	return products, nil
+}
+
+func (p *ProductRepo) List(ctx context.Context, in rp.ProductParams) ([]entity.ProductsRP, error) {
+
+	baseQuery := `
+        SELECT 
+            p.id,
+            t.name,
+            p.status,
+            t.price
+        FROM public.products p
+        JOIN public.templates t ON p.template_id = t.id
+    `
+
+	var (
+		conditions []string
+		args       []any
+		argID      = 1
+	)
+
+	if in.Status != nil {
+		conditions = append(conditions, fmt.Sprintf("p.status = $%d", argID))
+		args = append(args, *in.Status)
+		argID++
+	}
+
+	if in.TemplateID != nil {
+		conditions = append(conditions, fmt.Sprintf("p.template_id = $%d", argID))
+		args = append(args, *in.TemplateID)
+		argID++
+	}
+
+	if in.RentPointID != nil {
+		conditions = append(conditions, fmt.Sprintf("p.rentpoint_id = $%d", argID))
+		args = append(args, *in.RentPointID)
+		argID++
+	}
+
+	if len(conditions) > 0 {
+		baseQuery += " WHERE " + strings.Join(conditions, " AND ")
+	}
+
+	rows, err := p.Pool.Query(ctx, baseQuery, args...)
+	if err != nil {
+		return nil, fmt.Errorf("ProductRepo - List - Query(): %w", err)
+	}
+	defer rows.Close()
+
+	var products []entity.ProductsRP
+	for rows.Next() {
+		var product entity.ProductsRP
+		if err := rows.Scan(
+			&product.Id,
+			&product.Name,
+			&product.Status,
+			&product.Price,
+		); err != nil {
+			return nil, fmt.Errorf("ProductRepo - List - Scan(): %w", err)
+		}
+		products = append(products, product)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("ProductRepo - List - rows.Err(): %w", err)
 	}
 
 	return products, nil

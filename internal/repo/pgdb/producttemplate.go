@@ -2,12 +2,16 @@ package pgdb
 
 import (
 	"EasyRentGo/internal/entity"
+	"EasyRentGo/internal/repo/repoerrors"
 	rp "EasyRentGo/internal/repo/repotypes"
 	"EasyRentGo/pkg/postgres"
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 type ProductTemplateRepo struct {
@@ -18,14 +22,15 @@ func NewProductTemplateRepo(pg *postgres.Postgres) *ProductTemplateRepo {
 	return &ProductTemplateRepo{pg}
 }
 
-func (pt *ProductTemplateRepo) Create(ctx context.Context, temp rp.CreateTemplateInput) (entity.ProductTemp, error) {
+func (pt *ProductTemplateRepo) Create(ctx context.Context, temp rp.CreateTemplateInput) (entity.ProductTemplate, error) {
 	sql := `
 		INSERT INTO templates (name, description, price)
 		VALUES ($1, $2, $3)
 		RETURNING id, name, description, price;
 	`
 
-	var template entity.ProductTemp
+	var template entity.ProductTemplate
+
 	if err := pt.Pool.QueryRow(ctx, sql,
 		temp.Name,
 		temp.Description,
@@ -36,16 +41,26 @@ func (pt *ProductTemplateRepo) Create(ctx context.Context, temp rp.CreateTemplat
 		&template.Description,
 		&template.Price,
 	); err != nil {
-		return entity.ProductTemp{}, fmt.Errorf("ProductTemplateRepo - Create - pt.Pool.QueryRow: %w", err)
+
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			switch pgErr.Code {
+			case "23505":
+				return entity.ProductTemplate{}, repoerrors.ErrAlreadyExists
+			}
+		}
+
+		return entity.ProductTemplate{}, fmt.Errorf("ProductTemplateRepo - Create - pt.Pool.QueryRow: %w", err)
 	}
 
 	return template, nil
 }
 
-func (pt *ProductTemplateRepo) GetAll(ctx context.Context) ([]entity.ProductTemp, error) {
+func (pt *ProductTemplateRepo) GetAll(ctx context.Context) ([]entity.ProductTemplate, error) {
 	sql := `
-		SELECT * 
-		FROM templates;`
+		SELECT id, name, description, price
+		FROM templates;
+		`
 
 	rows, err := pt.Pool.Query(ctx, sql)
 	if err != nil {
@@ -53,13 +68,18 @@ func (pt *ProductTemplateRepo) GetAll(ctx context.Context) ([]entity.ProductTemp
 	}
 	defer rows.Close()
 
-	var templates []entity.ProductTemp
+	var templates []entity.ProductTemplate
 	for rows.Next() {
-		var temp entity.ProductTemp
-		err := rows.Scan(&temp.ID, &temp.Name, &temp.Description, &temp.Price)
-		if err != nil {
+		var temp entity.ProductTemplate
+		if err := rows.Scan(
+			&temp.ID,
+			&temp.Name,
+			&temp.Description,
+			&temp.Price,
+		); err != nil {
 			return nil, fmt.Errorf("ProductTemplateRepo - GetAll - rows.Scan: %w", err)
 		}
+
 		templates = append(templates, temp)
 	}
 	if err := rows.Err(); err != nil {
@@ -69,25 +89,22 @@ func (pt *ProductTemplateRepo) GetAll(ctx context.Context) ([]entity.ProductTemp
 	return templates, nil
 }
 
-func (pt *ProductTemplateRepo) GetByID(ctx context.Context, id uuid.UUID) (entity.ProductTemp, error) {
+func (pt *ProductTemplateRepo) GetByID(ctx context.Context, id uuid.UUID) (entity.ProductTemplate, error) {
 	sql := `
-		SELECT t.id, t.name, t.description, t.price
-		FROM templates t
+		SELECT id, name, description, price
+		FROM templates
 		WHERE id = $1
 	`
 
-	var tmp entity.ProductTemp
+	var tmp entity.ProductTemplate
 	err := pt.Pool.QueryRow(ctx, sql, id).Scan(&tmp.ID, &tmp.Name, &tmp.Description, &tmp.Price)
 	if err != nil {
-		return entity.ProductTemp{}, fmt.Errorf("ProductTemplateRepo - GetByID - p.Pool.QueryRow.Scan: %w", err)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return entity.ProductTemplate{}, repoerrors.ErrNotFound
+		}
+
+		return entity.ProductTemplate{}, fmt.Errorf("ProductTemplateRepo - GetByID - p.Pool.QueryRow.Scan: %w", err)
 	}
 
 	return tmp, nil
 }
-
-// type ProductTemp struct {
-// 	ID          uuid.UUID `json:"id"`
-// 	Name        string    `json:"name"`
-// 	Description string    `json:"desc"`
-// 	Price       float64   `json:"price"`
-// }

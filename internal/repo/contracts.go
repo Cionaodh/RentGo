@@ -19,9 +19,9 @@ type RentPoint interface {
 }
 
 type TemplateProduct interface {
-	Create(context.Context, rp.CreateTemplateInput) (entity.ProductTemp, error)
-	GetAll(context.Context) ([]entity.ProductTemp, error)
-	GetByID(context.Context, uuid.UUID) (entity.ProductTemp, error)
+	Create(context.Context, rp.CreateTemplateInput) (entity.ProductTemplate, error)
+	GetAll(context.Context) ([]entity.ProductTemplate, error)
+	GetByID(context.Context, uuid.UUID) (entity.ProductTemplate, error)
 }
 
 type Product interface {
@@ -29,6 +29,7 @@ type Product interface {
 	GetAll(context.Context) ([]entity.Product, error)
 	GetByID(context.Context, uuid.UUID) (entity.Product, error)
 	GetByRentpoint(context.Context, uuid.UUID) ([]entity.ProductsRP, error)
+	List(context.Context, rp.ProductParams) ([]entity.ProductsRP, error)
 
 	// GetByParameters() ([]entity.Products, error)
 
