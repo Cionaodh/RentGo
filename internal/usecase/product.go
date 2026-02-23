@@ -3,10 +3,11 @@ package usecase
 import (
 	"EasyRentGo/internal/entity"
 	"EasyRentGo/internal/repo"
+	"EasyRentGo/internal/repo/repoerrors"
 	repotype "EasyRentGo/internal/repo/repotypes"
 	"EasyRentGo/pkg/logger"
 	"context"
-	"fmt"
+	"errors"
 
 	"github.com/google/uuid"
 )
@@ -22,22 +23,28 @@ func NewProductUsecase(p repo.Product, t repo.TemplateProduct, l logger.Interfac
 }
 
 func (p *ProductUsecase) Create(ctx context.Context, in CreateProductInput) (entity.Products, error) {
-	// проверяем количество создаваемых объектов
+
+	if in.TemplateId == uuid.Nil {
+		return entity.Products{}, ErrInvalidTemplateID
+	}
+
 	if in.Number <= 0 || in.Number > 100000 {
-		return entity.Products{}, ErrNumberProduct
+		return entity.Products{}, ErrInvalidProductQty
 	}
 
-	product := repotype.CreateProductInput{
+	products, err := p.productRepo.Create(ctx, repotype.CreateProductInput{
 		TemplateId: in.TemplateId,
-		Status:     entity.StatusUnused, // устанавливаем default status
+		Status:     entity.StatusUnused,
 		Number:     in.Number,
-	}
-
-	products, err := p.productRepo.Create(ctx, product)
+	})
 	if err != nil {
-		// TODO: обработка ожидаемых ошибок: 1) несуществующий шаблон
-		p.l.Error("ProductUsecase - Create - p.productRepo.Create: %v", err)
-		return entity.Products{}, ErrCreateProduct
+		switch {
+		case errors.Is(err, repoerrors.ErrNotFound):
+			return entity.Products{}, ErrTemplateNotFound
+		default:
+			p.l.Error("ProductUsecase - Create(): %v", err)
+			return entity.Products{}, ErrCreateProduct
+		}
 	}
 
 	return products, nil
@@ -46,25 +53,44 @@ func (p *ProductUsecase) Create(ctx context.Context, in CreateProductInput) (ent
 func (p *ProductUsecase) GetAll(ctx context.Context) ([]entity.Product, error) {
 	products, err := p.productRepo.GetAll(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("ProductUsecase - GetAll - p.productRepo.GetAll: %w", err)
+		p.l.Error("ProductUsecase.GetAll: %v", err)
+		return nil, ErrFetchProducts
 	}
-
-	// if len(products) == 0 {
-	// 	return nil, errors.New("no products found")
-	// }
-
 	return products, nil
 }
 
 func (p *ProductUsecase) GetByID(ctx context.Context, id uuid.UUID) (entity.Product, error) {
-	product, err := p.productRepo.GetByID(ctx, id)
-	if err != nil {
-		return entity.Product{}, fmt.Errorf("ProductUsecase - GetByID - p.productRepo.GetByID: %w", err)
+	if id == uuid.Nil {
+		return entity.Product{}, ErrInvalidProductID
 	}
 
-	// TODO: проверить является ли пустым полученное значение
+	product, err := p.productRepo.GetByID(ctx, id)
+	if err != nil {
+		switch {
+		case errors.Is(err, repoerrors.ErrNotFound):
+			return entity.Product{}, ErrProductNotFound
+		default:
+			p.l.Error("ProductUsecase - GetByID: %v", err)
+			return entity.Product{}, ErrFetchProducts
+		}
+	}
 
 	return product, nil
+}
+
+func (p *ProductUsecase) List(ctx context.Context, in ProductParamsInput) ([]entity.ProductsRP, error) {
+
+	products, err := p.productRepo.List(ctx, repotype.ProductParams{
+		Status:      in.Status,
+		RentPointID: in.RentPointID,
+		TemplateID:  in.TemplateID,
+	})
+	if err != nil {
+		p.l.Error("ProductUsecase - List: %v", err)
+		return nil, ErrFetchProducts
+	}
+
+	return products, nil
 }
 
 func (p *ProductUsecase) Delete(context.Context, uuid.UUID) error {

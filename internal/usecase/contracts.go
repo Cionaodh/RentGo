@@ -15,8 +15,8 @@ type CreateRentpointInput struct {
 }
 
 type AddProductsInput struct {
-	ID_rentpoint uuid.UUID
-	IDs_products uuid.UUIDs
+	RentpointID uuid.UUID
+	ProductsID  uuid.UUIDs
 }
 
 type RentPoint interface {
@@ -34,9 +34,9 @@ type CreateTemplateInput struct {
 }
 
 type Template interface {
-	Create(context.Context, CreateTemplateInput) (entity.ProductTemp, error)
-	GetAll(context.Context) ([]entity.ProductTemp, error)
-	GetByID(context.Context, uuid.UUID) (entity.ProductTemp, error)
+	Create(context.Context, CreateTemplateInput) (entity.ProductTemplate, error)
+	GetAll(context.Context) ([]entity.ProductTemplate, error)
+	GetByID(context.Context, uuid.UUID) (entity.ProductTemplate, error)
 }
 
 type CreateProductInput struct {
@@ -44,11 +44,18 @@ type CreateProductInput struct {
 	Number     int
 }
 
+type ProductParamsInput struct {
+	Status      *entity.ProductStatus
+	RentPointID *uuid.UUID
+	TemplateID  *uuid.UUID
+}
+
 type Product interface {
 	Create(context.Context, CreateProductInput) (entity.Products, error)
 	GetAll(context.Context) ([]entity.Product, error)
 	GetByID(context.Context, uuid.UUID) (entity.Product, error)
 	Delete(context.Context, uuid.UUID) error
+	List(context.Context, ProductParamsInput) ([]entity.ProductsRP, error)
 
 	// GetByStatus(context.Context, entity.ProductStatus) ([]entity.Product, error)
 	// GetByRentPointID(context.Context, uuid.UUID) ([]entity.Product, error)
@@ -89,7 +96,7 @@ type UsecaseDependencies struct {
 func NewUsecase(d UsecaseDependencies, l logger.Interface) *Usecases {
 	return &Usecases{
 		RentPoint: NewRentPointUsecase(d.Repos.RentPoint, d.Repos.Product, l),
-		Template:  NewTeplateProductUsecase(d.Repos.TemplateProduct, l),
+		Template:  NewTemplateUsecase(d.Repos.TemplateProduct, l),
 		Product:   NewProductUsecase(d.Repos.Product, d.Repos.TemplateProduct, l),
 		Order:     NewOrderUsecase(d.Repos.Order, l),
 	}

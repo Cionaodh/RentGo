@@ -3,31 +3,34 @@ package usecase
 import (
 	"EasyRentGo/internal/entity"
 	"EasyRentGo/internal/repo"
+	"EasyRentGo/internal/repo/repoerrors"
 	repotype "EasyRentGo/internal/repo/repotypes"
 	"EasyRentGo/pkg/logger"
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/google/uuid"
 )
 
-type TeplateProductUsecase struct {
+type TemplateUsecase struct {
 	repo repo.TemplateProduct
 	l    logger.Interface
 }
 
-func NewTeplateProductUsecase(r repo.TemplateProduct, l logger.Interface) *TeplateProductUsecase {
-	return &TeplateProductUsecase{r, l}
+func NewTemplateUsecase(r repo.TemplateProduct, l logger.Interface) *TemplateUsecase {
+	return &TemplateUsecase{
+		repo: r,
+		l:    l,
+	}
 }
 
-func (uc *TeplateProductUsecase) Create(ctx context.Context, t CreateTemplateInput) (entity.ProductTemp, error) {
+func (uc *TemplateUsecase) Create(ctx context.Context, t CreateTemplateInput) (entity.ProductTemplate, error) {
 	// Проверка входных данных
 	if t.Name == "" {
-		return entity.ProductTemp{}, errors.New("invalid template name")
+		return entity.ProductTemplate{}, ErrInvalidTemplateName
 	}
 	if t.Price <= 0 {
-		return entity.ProductTemp{}, errors.New("invalid template price")
+		return entity.ProductTemplate{}, ErrInvalidTemplatePrice
 	}
 
 	temp, err := uc.repo.Create(ctx, repotype.CreateTemplateInput{
@@ -36,34 +39,42 @@ func (uc *TeplateProductUsecase) Create(ctx context.Context, t CreateTemplateInp
 		Price:       t.Price,
 	})
 	if err != nil {
-		return entity.ProductTemp{}, fmt.Errorf("TeplateProductUsecase - Create - uc.repo.Create: %w", err)
+		if errors.Is(err, repoerrors.ErrAlreadyExists) {
+			return entity.ProductTemplate{}, ErrTemplateAlreadyExists
+		}
+		uc.l.Error("TemplateUsecase - Create: %v", err)
+		return entity.ProductTemplate{}, ErrCreateTemplate
 	}
 
 	return temp, nil
 }
 
-func (uc *TeplateProductUsecase) GetAll(ctx context.Context) ([]entity.ProductTemp, error) {
+func (uc *TemplateUsecase) GetAll(ctx context.Context) ([]entity.ProductTemplate, error) {
 	templates, err := uc.repo.GetAll(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("TeplateProductUsecase - GetAll - uc.repo.GetAll: %w", err)
+		uc.l.Error("TemplateUsecase - GetAll: %v", err)
+		return nil, ErrGetAllTemplate
 	}
 
-	if len(templates) == 0 {
-		return nil, errors.New("no templates found")
-	}
+	// if len(templates) == 0 {
+	// 	return nil, errors.New("no templates found")
+	// }
 
 	return templates, nil
 }
 
-func (uc *TeplateProductUsecase) GetByID(ctx context.Context, id uuid.UUID) (entity.ProductTemp, error) {
+func (uc *TemplateUsecase) GetByID(ctx context.Context, id uuid.UUID) (entity.ProductTemplate, error) {
 	if id == uuid.Nil {
-		return entity.ProductTemp{}, errors.New("invalid template ID")
+		return entity.ProductTemplate{}, ErrInvalidTemplateID
 	}
 
 	template, err := uc.repo.GetByID(ctx, id)
 	if err != nil {
-		uc.l.Error("TeplateProductUsecase - GetByID - uc.repo.GetByID: %v", err)
-		return entity.ProductTemp{}, err
+		if errors.Is(err, repoerrors.ErrNotFound) {
+			return entity.ProductTemplate{}, ErrTemplateNotFound
+		}
+		uc.l.Error("TemplateUsecase - GetByID: %v", err)
+		return entity.ProductTemplate{}, ErrFetchTemplates
 	}
 
 	return template, nil

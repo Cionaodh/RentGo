@@ -3,9 +3,11 @@ package usecase
 import (
 	"EasyRentGo/internal/entity"
 	"EasyRentGo/internal/repo"
+	"EasyRentGo/internal/repo/repoerrors"
 	repotype "EasyRentGo/internal/repo/repotypes"
 	"EasyRentGo/pkg/logger"
 	"context"
+	"errors"
 
 	"github.com/google/uuid"
 )
@@ -20,12 +22,24 @@ func NewOrderUsecase(rp repo.Order, l logger.Interface) *OrderUsecase {
 }
 
 func (o *OrderUsecase) Create(ctx context.Context, in CreateOrderInput) (entity.Order, error) {
+	if in.ProductID == uuid.Nil {
+		return entity.Order{}, ErrInvalidProductID
+	}
 
 	order, err := o.repo.Create(ctx, repotype.CreateOrderInput{
 		ProductID: in.ProductID,
 	})
 	if err != nil {
-		return entity.Order{}, err
+		switch {
+		// TODO: Разделить обработку 1) продукт не существует 2) продукт уже занят
+		case errors.Is(err, repoerrors.ErrProductNotAvailable),
+			errors.Is(err, repoerrors.ErrProductStateInvalid):
+			return entity.Order{}, ErrProductNotFound // продукта не существует
+			// case errors.Is(err, repoerrors.ErrForeignKeyViolation):
+			// 	return entity.Order{}, err
+		}
+		o.l.Error("OrderUsecase - Create: %v", err)
+		return entity.Order{}, ErrCreateOrder // internal error - "Ошибка при создании заказа"
 	}
 
 	return order, nil
@@ -35,17 +49,25 @@ func (o *OrderUsecase) GetAll(ctx context.Context) ([]entity.Order, error) {
 
 	orders, err := o.repo.GetAll(ctx)
 	if err != nil {
-		return []entity.Order{}, nil
+		o.l.Error("OrderUsecase - GetAll: %v", err)
+		return nil, ErrFetchOrders
 	}
 
 	return orders, nil
 }
 
 func (o *OrderUsecase) GetByID(ctx context.Context, id uuid.UUID) (entity.Order, error) {
+	if id == uuid.Nil {
+		return entity.Order{}, ErrInvalidOrderID
+	}
 
 	order, err := o.repo.GetByID(ctx, id)
 	if err != nil {
-		return entity.Order{}, err
+		if errors.Is(err, repoerrors.ErrNotFound) {
+			return entity.Order{}, ErrOrderNotFound
+		}
+		o.l.Error("OrderUsecase - GetByID: %v", err)
+		return entity.Order{}, ErrFetchOrders
 	}
 
 	return order, nil
@@ -53,8 +75,33 @@ func (o *OrderUsecase) GetByID(ctx context.Context, id uuid.UUID) (entity.Order,
 
 func (o *OrderUsecase) Complete(ctx context.Context, in CompleteOrderInput) (entity.Order, error) {
 
-	return o.repo.Complete(ctx, repotype.CompleteOrderInput{
+	if in.ID == uuid.Nil {
+		return entity.Order{}, ErrInvalidOrderID
+	}
+
+	if in.FinishingPointID == uuid.Nil {
+		return entity.Order{}, ErrInvalidRentpointID
+	}
+
+	order, err := o.repo.Complete(ctx, repotype.CompleteOrderInput{
 		ID:               in.ID,
 		FinishingPointID: in.FinishingPointID,
 	})
+	if err != nil {
+		switch {
+		case errors.Is(err, repoerrors.ErrOrderNotActive):
+			return entity.Order{}, ErrOrderNotActive
+
+		case errors.Is(err, repoerrors.ErrProductStateInvalid):
+			return entity.Order{}, ErrInvalidOrderState
+
+		case errors.Is(err, repoerrors.ErrForeignKeyViolation):
+			return entity.Order{}, ErrRentPointNotFound
+
+		}
+		o.l.Error("OrderUsecase - Complete: %v", err)
+		return entity.Order{}, ErrCompleteOrder
+	}
+
+	return order, nil
 }
