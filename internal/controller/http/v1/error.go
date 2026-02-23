@@ -8,7 +8,8 @@ import (
 )
 
 var (
-	ErrInvalidParameters = errors.New("invalid request parameters")
+	ErrInvalidParameters  = errors.New("invalid request parameters")
+	ErrInvalidRequestBody = errors.New("invalid request body")
 )
 
 func errorResponse(ctx *fiber.Ctx, code int, msg string) error {

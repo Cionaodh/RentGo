@@ -30,12 +30,12 @@ func (r *rentPointRoutes) create(ctx *fiber.Ctx) error {
 
 	// Read body request
 	if err := ctx.BodyParser(&body); err != nil {
-		return errorResponse(ctx, http.StatusBadRequest, "invalid request body")
+		return errorResponse(ctx, http.StatusBadRequest, ErrInvalidRequestBody.Error())
 	}
 
 	// Validation
 	if err := r.v.Struct(body); err != nil {
-		return errorResponse(ctx, http.StatusBadRequest, "request body validation error")
+		return errorResponse(ctx, http.StatusBadRequest, ErrInvalidParameters.Error())
 	}
 
 	point, err := r.pointUsecase.CreateRentpoint(
@@ -46,14 +46,17 @@ func (r *rentPointRoutes) create(ctx *fiber.Ctx) error {
 		},
 	)
 	if err != nil {
-		if errors.Is(err, usecase.ErrRentPointAlreadyExists) {
+		switch {
+		case errors.Is(err, usecase.ErrRentPointAlreadyExists):
 			return errorResponse(ctx, http.StatusConflict, err.Error())
-		}
-		if errors.Is(err, usecase.ErrFieldIsTooLong) {
-			return errorResponse(ctx, http.StatusBadRequest, err.Error())
-		}
 
-		return errorResponse(ctx, http.StatusInternalServerError, err.Error())
+		case errors.Is(err, usecase.ErrFieldIsEmpty),
+			errors.Is(err, usecase.ErrFieldIsTooLong):
+			return errorResponse(ctx, http.StatusBadRequest, err.Error())
+
+		default:
+			return errorResponse(ctx, http.StatusInternalServerError, "internal server error")
+		}
 	}
 
 	return ctx.Status(http.StatusCreated).JSON(point)
@@ -62,7 +65,7 @@ func (r *rentPointRoutes) create(ctx *fiber.Ctx) error {
 func (r *rentPointRoutes) getAll(ctx *fiber.Ctx) error {
 	points, err := r.pointUsecase.GetAll(ctx.UserContext())
 	if err != nil {
-		return errorResponse(ctx, http.StatusInternalServerError, "failed to get rent points")
+		return errorResponse(ctx, http.StatusInternalServerError, "internal server error")
 	}
 
 	return ctx.Status(http.StatusOK).JSON(points)
@@ -76,7 +79,12 @@ func (r *rentPointRoutes) getByID(ctx *fiber.Ctx) error {
 
 	point, err := r.pointUsecase.GetByID(ctx.UserContext(), id)
 	if err != nil {
-		return errorResponse(ctx, http.StatusInternalServerError, "failed to get rent point")
+		switch {
+		case errors.Is(err, usecase.ErrRentPointNotFound):
+			return errorResponse(ctx, http.StatusNotFound, err.Error())
+		default:
+			return errorResponse(ctx, http.StatusInternalServerError, "internal server error")
+		}
 	}
 
 	return ctx.Status(http.StatusOK).JSON(point)
@@ -102,11 +110,21 @@ func (r *rentPointRoutes) addProducts(ctx *fiber.Ctx) error {
 	}
 
 	rentpoint, err := r.pointUsecase.AddProduct(ctx.UserContext(), usecase.AddProductsInput{
-		ID_rentpoint: id,
-		IDs_products: body.IdProducts,
+		RentpointID: id,
+		ProductsID:  body.IdProducts,
 	})
 	if err != nil {
-		return errorResponse(ctx, http.StatusInternalServerError, "rentpoint service problems")
+		switch {
+		case errors.Is(err, usecase.ErrRentPointNotFound),
+			errors.Is(err, usecase.ErrProductNotFound):
+			return errorResponse(ctx, http.StatusNotFound, err.Error())
+
+		case errors.Is(err, usecase.ErrProductAlreadyAssigned):
+			return errorResponse(ctx, http.StatusConflict, err.Error())
+
+		default:
+			return errorResponse(ctx, http.StatusInternalServerError, "internal server error")
+		}
 	}
 
 	return ctx.Status(http.StatusOK).JSON(rentpoint)

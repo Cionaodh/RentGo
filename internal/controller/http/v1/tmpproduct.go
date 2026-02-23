@@ -2,6 +2,7 @@ package v1
 
 import (
 	"EasyRentGo/internal/usecase"
+	"errors"
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
@@ -32,25 +33,33 @@ func (r *templateRoutes) create(ctx *fiber.Ctx) error {
 
 	// Read body request
 	if err := ctx.BodyParser(&body); err != nil {
-		return errorResponse(ctx, http.StatusBadRequest, "invalid request body")
+		return errorResponse(ctx, http.StatusBadRequest, ErrInvalidRequestBody.Error())
 		// return errorResponse(ctx, http.StatusBadRequest, err.Error())
 	}
 
 	// Validation
 	if err := r.v.Struct(body); err != nil {
-		return errorResponse(ctx, http.StatusBadRequest, "invalid request body")
+		return errorResponse(ctx, http.StatusBadRequest, ErrInvalidRequestBody.Error()) // Ошибка валидации
 	}
 
-	temp, err := r.temp.Create(
-		ctx.UserContext(),
-		usecase.CreateTemplateInput{
-			Name:        body.Name,
-			Description: body.Description,
-			Price:       body.Price,
-		},
+	temp, err := r.temp.Create(ctx.UserContext(), usecase.CreateTemplateInput{
+		Name:        body.Name,
+		Description: body.Description,
+		Price:       body.Price,
+	},
 	)
 	if err != nil {
-		return errorResponse(ctx, http.StatusInternalServerError, "template service problems")
+		switch {
+		case errors.Is(err, usecase.ErrTemplateAlreadyExists):
+			return errorResponse(ctx, http.StatusConflict, err.Error())
+
+		case errors.Is(err, usecase.ErrInvalidTemplateName),
+			errors.Is(err, usecase.ErrInvalidTemplatePrice):
+			return errorResponse(ctx, http.StatusBadRequest, err.Error())
+
+		default:
+			return errorResponse(ctx, http.StatusInternalServerError, "failed to create template")
+		}
 	}
 
 	return ctx.Status(http.StatusCreated).JSON(temp)
@@ -59,7 +68,7 @@ func (r *templateRoutes) create(ctx *fiber.Ctx) error {
 func (r *templateRoutes) getAll(ctx *fiber.Ctx) error {
 	templates, err := r.temp.GetAll(ctx.UserContext())
 	if err != nil {
-		return errorResponse(ctx, http.StatusInternalServerError, "failed to get all templates")
+		return errorResponse(ctx, http.StatusInternalServerError, "failed to fetch templates")
 	}
 
 	return ctx.Status(http.StatusOK).JSON(templates)
@@ -68,13 +77,22 @@ func (r *templateRoutes) getAll(ctx *fiber.Ctx) error {
 func (r *templateRoutes) getByID(ctx *fiber.Ctx) error {
 	id, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
-		return errorResponse(ctx, http.StatusBadRequest, "invalid rentpoint ID format")
+		return errorResponse(ctx, http.StatusBadRequest, "invalid template id format")
 	}
 
-	point, err := r.temp.GetByID(ctx.UserContext(), id)
+	template, err := r.temp.GetByID(ctx.UserContext(), id)
 	if err != nil {
-		return errorResponse(ctx, http.StatusInternalServerError, "failed to get rent point")
+		switch {
+		case errors.Is(err, usecase.ErrTemplateNotFound):
+			return errorResponse(ctx, http.StatusNotFound, err.Error())
+
+		case errors.Is(err, usecase.ErrInvalidTemplateID):
+			return errorResponse(ctx, http.StatusBadRequest, err.Error())
+
+		default:
+			return errorResponse(ctx, http.StatusInternalServerError, "failed to fetch template")
+		}
 	}
 
-	return ctx.Status(http.StatusOK).JSON(point)
+	return ctx.Status(http.StatusOK).JSON(template)
 }

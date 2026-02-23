@@ -1,7 +1,5 @@
 package v1
 
-// Содержит маршруты всех конечных точек
-
 import (
 	"EasyRentGo/internal/usecase"
 
@@ -34,18 +32,20 @@ func NewRoutes(apiV1Group fiber.Router, uc *usecase.Usecases) {
 	productGroup := apiV1Group.Group("/products")
 	{
 		p := newProductRoutes(uc.Product, validator.New(validator.WithRequiredStructEnabled()))
-		productGroup.Post("/", p.create)    // POST /v1/products/
-		productGroup.Get("/", p.getAll)     // GET /v1/products/
-		productGroup.Get("/:id", p.getByID) // GET /v1/products/{id}
+		productGroup.Post("/", p.create)     // POST /v1/products/
+		productGroup.Get("/", p.getAll)      // GET /v1/products/
+		productGroup.Get("/params/", p.list) // GET /v1/products/
+		productGroup.Get("/:id", p.getByID)  // GET /v1/products/{id}
+		// productGroup.Patch("/a")) // добавление продукта в точку проката
 	}
 
 	//
 	orderGroup := apiV1Group.Group("/orders")
 	{
 		o := newOrderRoutes(uc.Order, validator.New(validator.WithRequiredStructEnabled()))
-		orderGroup.Post("/", o.create)               // POST /v1/orders/
-		orderGroup.Get("/", o.getAll)                // GET /v1/orders/
-		orderGroup.Get("/:id", o.getByID)            // GET /v1/orders/{id}
-		orderGroup.Post("/:id/complete", o.complete) // PATCH /v1/orders/{id}
+		orderGroup.Post("/", o.create)                // POST /v1/orders/
+		orderGroup.Get("/", o.getAll)                 // GET /v1/orders/
+		orderGroup.Get("/:id", o.getByID)             // GET /v1/orders/{id}
+		orderGroup.Patch("/:id/complete", o.complete) // PATCH /v1/orders/{id}
 	}
 }

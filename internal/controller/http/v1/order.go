@@ -2,6 +2,7 @@ package v1
 
 import (
 	"EasyRentGo/internal/usecase"
+	"errors"
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
@@ -19,28 +20,46 @@ func newOrderRoutes(rp usecase.Order, v *validator.Validate) *orderRoutes {
 	return &orderRoutes{rp, v}
 }
 
-type OrderDTO struct {
-	ID uuid.UUID `json:"product_id" validate:"required" example:""`
+type CreateOrderDTO struct {
+	ProductID uuid.UUID `json:"product_id" validate:"required" example:""`
+}
+
+type CompleteOrderDTO struct {
+	FinishingPointID uuid.UUID `json:"finishing_point_id" validate:"required" example:""`
 }
 
 func (r *orderRoutes) create(ctx *fiber.Ctx) error {
-	var body OrderDTO
+	var body CreateOrderDTO
 
-	// Read body request
 	if err := ctx.BodyParser(&body); err != nil {
-		return errorResponse(ctx, http.StatusBadRequest, "invalid request body")
+		return errorResponse(ctx, http.StatusBadRequest, ErrInvalidRequestBody.Error())
 	}
 
-	// Validation
 	if err := r.v.Struct(body); err != nil {
-		return errorResponse(ctx, http.StatusBadRequest, "request body validation error")
+		return errorResponse(ctx, http.StatusBadRequest, ErrInvalidParameters.Error())
 	}
 
 	order, err := r.orderUsecase.Create(ctx.UserContext(), usecase.CreateOrderInput{
-		ProductID: body.ID,
+		ProductID: body.ProductID,
 	})
 	if err != nil {
-		return errorResponse(ctx, http.StatusBadRequest, err.Error())
+
+		switch {
+		case errors.Is(err, usecase.ErrInvalidProductID):
+			return errorResponse(ctx, http.StatusBadRequest, err.Error())
+
+		case errors.Is(err, usecase.ErrProductNotFound):
+			return errorResponse(ctx, http.StatusNotFound, err.Error())
+
+		case errors.Is(err, usecase.ErrProductAlreadyAssigned),
+			errors.Is(err, usecase.ErrInvalidOrderState):
+			return errorResponse(ctx, http.StatusConflict, err.Error())
+
+		case errors.Is(err, usecase.ErrCreateOrder):
+			return errorResponse(ctx, http.StatusInternalServerError, "internal server error")
+		}
+
+		return errorResponse(ctx, http.StatusInternalServerError, "internal server error")
 	}
 
 	return ctx.Status(http.StatusCreated).JSON(order)
@@ -49,7 +68,7 @@ func (r *orderRoutes) create(ctx *fiber.Ctx) error {
 func (r *orderRoutes) getAll(ctx *fiber.Ctx) error {
 	orders, err := r.orderUsecase.GetAll(ctx.UserContext())
 	if err != nil {
-		return errorResponse(ctx, http.StatusInternalServerError, "failed to get orders")
+		return errorResponse(ctx, http.StatusInternalServerError, "internal server error")
 	}
 
 	return ctx.Status(http.StatusOK).JSON(orders)
@@ -58,37 +77,43 @@ func (r *orderRoutes) getAll(ctx *fiber.Ctx) error {
 func (r *orderRoutes) getByID(ctx *fiber.Ctx) error {
 	id, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
-		return errorResponse(ctx, http.StatusBadRequest, "invalid order ID format")
+		return errorResponse(ctx, http.StatusBadRequest, "invalid order id format")
 	}
 
-	point, err := r.orderUsecase.GetByID(ctx.UserContext(), id)
+	order, err := r.orderUsecase.GetByID(ctx.UserContext(), id)
 	if err != nil {
-		return errorResponse(ctx, http.StatusInternalServerError, "failed to get order")
+
+		switch {
+		case errors.Is(err, usecase.ErrInvalidOrderID):
+			return errorResponse(ctx, http.StatusBadRequest, err.Error())
+
+		case errors.Is(err, usecase.ErrOrderNotFound):
+			return errorResponse(ctx, http.StatusNotFound, err.Error())
+
+		case errors.Is(err, usecase.ErrFetchOrders):
+			return errorResponse(ctx, http.StatusInternalServerError, "internal server error")
+		}
+
+		return errorResponse(ctx, http.StatusInternalServerError, "internal server error")
 	}
 
-	return ctx.Status(http.StatusOK).JSON(point)
-}
-
-type CompleteOrderDTO struct {
-	FinishingPointID uuid.UUID `json:"finishing_point_id" validate:"required" example:""`
+	return ctx.Status(http.StatusOK).JSON(order)
 }
 
 func (r *orderRoutes) complete(ctx *fiber.Ctx) error {
 	id, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
-		return errorResponse(ctx, http.StatusBadRequest, "invalid order ID format")
+		return errorResponse(ctx, http.StatusBadRequest, "invalid order id format")
 	}
 
 	var body CompleteOrderDTO
 
-	// Read body request
 	if err := ctx.BodyParser(&body); err != nil {
-		return errorResponse(ctx, http.StatusBadRequest, "invalid request body")
+		return errorResponse(ctx, http.StatusBadRequest, ErrInvalidRequestBody.Error())
 	}
 
-	// Validation
 	if err := r.v.Struct(body); err != nil {
-		return errorResponse(ctx, http.StatusBadRequest, "request body validation error")
+		return errorResponse(ctx, http.StatusBadRequest, ErrInvalidParameters.Error())
 	}
 
 	order, err := r.orderUsecase.Complete(ctx.UserContext(), usecase.CompleteOrderInput{
@@ -96,8 +121,26 @@ func (r *orderRoutes) complete(ctx *fiber.Ctx) error {
 		FinishingPointID: body.FinishingPointID,
 	})
 	if err != nil {
-		return errorResponse(ctx, http.StatusBadRequest, err.Error())
+
+		switch {
+		case errors.Is(err, usecase.ErrInvalidOrderID),
+			errors.Is(err, usecase.ErrInvalidRentpointID):
+			return errorResponse(ctx, http.StatusBadRequest, err.Error())
+
+		case errors.Is(err, usecase.ErrOrderNotFound):
+			return errorResponse(ctx, http.StatusNotFound, err.Error())
+
+		case errors.Is(err, usecase.ErrOrderNotActive),
+			errors.Is(err, usecase.ErrInvalidOrderState),
+			errors.Is(err, usecase.ErrProductAlreadyAssigned):
+			return errorResponse(ctx, http.StatusConflict, err.Error())
+
+		case errors.Is(err, usecase.ErrCompleteOrder):
+			return errorResponse(ctx, http.StatusInternalServerError, "internal server error")
+		}
+
+		return errorResponse(ctx, http.StatusInternalServerError, "internal server error")
 	}
 
-	return ctx.Status(http.StatusCreated).JSON(order)
+	return ctx.Status(http.StatusOK).JSON(order)
 }
