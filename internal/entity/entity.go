@@ -25,7 +25,7 @@ type ProductRentPoint struct {
 	} `json:"products"`
 }
 
-type ProductTemp struct {
+type ProductTemplate struct {
 	ID          uuid.UUID `json:"id"`
 	Name        string    `json:"name"`
 	Description string    `json:"desc"`
@@ -40,6 +40,18 @@ const (
 	StatusReserved ProductStatus = "Reserved"
 	StatusRented   ProductStatus = "Rented"
 )
+
+func (s ProductStatus) IsValid() bool {
+	switch s {
+	case StatusUnused,
+		StatusFree,
+		StatusReserved,
+		StatusRented:
+		return true
+	default:
+		return false
+	}
+}
 
 // type ProductsTemp struct {
 // 	RentPointID uuid.UUID
@@ -84,12 +96,12 @@ type Order struct {
 	Status        OrderStatus `json:"status"`
 	ProductID     uuid.UUID   `json:"product_id"`
 	StartPointID  uuid.UUID   `json:"start_point_id"`
-	FigishPointID *uuid.UUID  `json:"finish_point_id,omitempty"` // Изменено на указатель
+	FigishPointID *uuid.UUID  `json:"finish_point_id,omitempty"`
 	StartedAT     time.Time   `json:"start_at"`
-	FinishedAT    *time.Time  `json:"finish_at,omitempty"` // Изменено на указатель
+	FinishedAT    *time.Time  `json:"finish_at,omitempty"`
 }
 
-// // ParseProductStatus конвертирует строку в ProductStatus (с проверкой валидности).
+// // ParseProductStatus конвертирует строку в ProductStatus
 // func ParseProductStatus(s string) (ProductStatus, error) {
 // 	switch s {
 // 	case string(StatusUnused), string(StatusFree),
@@ -100,7 +112,7 @@ type Order struct {
 // 	}
 // }
 
-// // MustParseProductStatus паникует при невалидном статусе (использовать только в тестах/инициализации).
+// // MustParseProductStatus паникует при невалидном статусе
 // func MustParseProductStatus(s string) ProductStatus {
 // 	status, err := ParseProductStatus(s)
 // 	if err != nil {
