@@ -1,7 +1,5 @@
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
 CREATE TABLE users (
-   id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
    email varchar(255) UNIQUE NOT NULL,
    username varchar(255) NOT NULL,
    password_hash varchar(255) NOT NULL,
@@ -9,14 +7,14 @@ CREATE TABLE users (
 );
 
 CREATE TABLE rentpoints (
-   id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
    "name" varchar(50) UNIQUE NOT NULL,
    addr varchar(50) UNIQUE NOT NULL,
    is_deleted boolean NOT NULL DEFAULT false
 );
 
 CREATE TABLE templates (
-   id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
    "name" varchar(50) UNIQUE NOT NULL,
    "description" varchar(50) NOT NULL,
    price numeric(7, 2) NOT NULL,
@@ -32,7 +30,7 @@ CREATE TYPE status_product_type AS ENUM (
 );
    
 CREATE TABLE products(
-   id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
    "status" status_product_type NOT NULL,
    template_id uuid NOT NULL REFERENCES templates(id) ON DELETE NO ACTION ON UPDATE CASCADE,
    rentpoint_id uuid REFERENCES rentpoints(id) ON DELETE SET NULL ON UPDATE CASCADE
@@ -46,7 +44,7 @@ CREATE TYPE status_order_type AS ENUM (
 );
 
 CREATE TABLE orders (
-   id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
    user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
    "status" status_order_type NOT NULL DEFAULT 'Active',
    
@@ -80,7 +78,7 @@ CREATE INDEX idx_orders_dates ON orders(rent_started_at, rent_finished_at);
 --------------------------------------
 
 
-INSERT INTO users (id, login, username, password_hash) VALUES
+INSERT INTO users (id, email, username, password_hash) VALUES
     ('550e8400-e29b-41d4-a716-111122220001'::uuid, 'ivanov', 'Иван Иванов', '$2a$10$somehash1...'),
     ('550e8400-e29b-41d4-a716-111122220002'::uuid, 'petrov', 'Петр Петров', '$2a$10$somehash2...');
 
@@ -105,7 +103,7 @@ INSERT INTO products (id, "status", template_id, rentpoint_id) VALUES
     ('550e8400-e29b-41d4-a716-446655660001'::uuid, 'Free', '550e8400-e29b-41d4-a716-446655550001'::uuid, '550e8400-e29b-41d4-a716-446655440001'::uuid),
     ('550e8400-e29b-41d4-a716-446655660002'::uuid, 'Free', '550e8400-e29b-41d4-a716-446655550001'::uuid, '550e8400-e29b-41d4-a716-446655440001'::uuid),
     ('550e8400-e29b-41d4-a716-446655660003'::uuid, 'Free', '550e8400-e29b-41d4-a716-446655550002'::uuid, '550e8400-e29b-41d4-a716-446655440002'::uuid),
-    ('550e8400-e29b-41d4-a716-446655660004'::uuid, 'Rented', '550e8400-e29b-41d4-a716-446655550002'::uuid, NULL), -- В аренде
+    ('550e8400-e29b-41d4-a716-446655660004'::uuid, 'Rented', '550e8400-e29b-41d4-a716-446655550002'::uuid, NULL),
     ('550e8400-e29b-41d4-a716-446655660005'::uuid, 'Reserved', '550e8400-e29b-41d4-a716-446655550003'::uuid, '550e8400-e29b-41d4-a716-446655440003'::uuid),
     ('550e8400-e29b-41d4-a716-446655660006'::uuid, 'Free', '550e8400-e29b-41d4-a716-446655550003'::uuid, '550e8400-e29b-41d4-a716-446655440003'::uuid),
     ('550e8400-e29b-41d4-a716-446655660007'::uuid, 'Unused', '550e8400-e29b-41d4-a716-446655550004'::uuid, NULL),
