@@ -3,6 +3,11 @@ package usecase
 import "errors"
 
 var (
+	ErrUserAlreadyExists  = errors.New("user with this email already exists")
+	ErrUserNotFound       = errors.New("user not found")
+	ErrInvalidCredentials = errors.New("invalid email or password")
+	ErrInvalidUserID      = errors.New("invalid user id")
+
 	ErrFieldIsEmpty   = errors.New("name and address cannot be empty")
 	ErrFieldIsTooLong = errors.New("name or address is too long")
 
@@ -35,4 +40,5 @@ var (
 	ErrOrderNotActive    = errors.New("order not active")
 	ErrInvalidOrderState = errors.New("invalid order state")
 	ErrCompleteOrder     = errors.New("failed to complete order")
+	ErrForbidden         = errors.New("access denied: you do not own this order")
 )

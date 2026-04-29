@@ -6,6 +6,23 @@ import (
 	"github.com/google/uuid"
 )
 
+// User — базовая сущность пользователя
+type User struct {
+	ID           uuid.UUID `json:"id" db:"id"`
+	Email        string    `json:"email" db:"email"`
+	Username     string    `json:"username" db:"username"`
+	PasswordHash string    `json:"-" db:"password_hash"`
+	CreatedAt    time.Time `json:"created_at" db:"created_at"`
+}
+
+// UserProfile - включает данные юзера и его заказы
+type UserProfile struct {
+	ID       uuid.UUID `json:"id"`
+	Email    string    `json:"email"`
+	Username string    `json:"username"`
+	Orders   []Order   `json:"orders"`
+}
+
 type RentPoint struct {
 	ID   uuid.UUID `json:"id"`
 	Name string    `json:"name"`
@@ -93,6 +110,7 @@ const (
 
 type Order struct {
 	ID            uuid.UUID   `json:"id"`
+	UserID        uuid.UUID   `jsin:"user_id"`
 	Status        OrderStatus `json:"status"`
 	ProductID     uuid.UUID   `json:"product_id"`
 	StartPointID  uuid.UUID   `json:"start_point_id"`

@@ -3,12 +3,19 @@ package repo
 import (
 	"EasyRentGo/internal/entity"
 	"EasyRentGo/internal/repo/pgdb"
+	repotype "EasyRentGo/internal/repo/repotypes"
 	rp "EasyRentGo/internal/repo/repotypes"
 	"EasyRentGo/pkg/postgres"
 	"context"
 
 	"github.com/google/uuid"
 )
+
+type User interface {
+	Create(ctx context.Context, input repotype.CreateUserInput) (entity.User, error)
+	GetByEmail(ctx context.Context, email string) (entity.User, error)
+	GetProfile(ctx context.Context, id uuid.UUID) (entity.UserProfile, error)
+}
 
 type RentPoint interface {
 	Create(context.Context, rp.CreateRentpointInput) (entity.RentPoint, error)
@@ -52,6 +59,7 @@ type Repositories struct {
 	TemplateProduct
 	Product
 	Order
+	User
 }
 
 func NewPostgresRepo(pg *postgres.Postgres) *Repositories {
@@ -60,5 +68,6 @@ func NewPostgresRepo(pg *postgres.Postgres) *Repositories {
 		TemplateProduct: pgdb.NewProductTemplateRepo(pg),
 		Product:         pgdb.NewProductRepo(pg),
 		Order:           pgdb.NewOrderRepo(pg),
+		User:            pgdb.NewUserRepo(pg),
 	}
 }

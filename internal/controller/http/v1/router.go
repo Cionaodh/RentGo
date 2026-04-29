@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"EasyRentGo/internal/controller/http/middleware"
 	"EasyRentGo/internal/usecase"
 
 	"github.com/go-playground/validator/v10"
@@ -40,12 +41,22 @@ func NewRoutes(apiV1Group fiber.Router, uc *usecase.Usecases) {
 	}
 
 	//
-	orderGroup := apiV1Group.Group("/orders")
+	orderGroup := apiV1Group.Group("/orders", middleware.Auth())
 	{
 		o := newOrderRoutes(uc.Order, validator.New(validator.WithRequiredStructEnabled()))
 		orderGroup.Post("/", o.create)                // POST /v1/orders/
 		orderGroup.Get("/", o.getAll)                 // GET /v1/orders/
 		orderGroup.Get("/:id", o.getByID)             // GET /v1/orders/{id}
 		orderGroup.Patch("/:id/complete", o.complete) // PATCH /v1/orders/{id}
+	}
+
+	// Пользователи
+	userGroup := apiV1Group.Group("/users")
+	{
+		u := newUserRoutes(uc.User, validator.New(validator.WithRequiredStructEnabled()))
+		userGroup.Post("/register", u.register)
+		userGroup.Post("/login", u.login)
+		userGroup.Get("/:id", middleware.Auth(), u.getProfile)
+		// userGroup.Get("/:id", u.getProfile)
 	}
 }

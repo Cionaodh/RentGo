@@ -9,6 +9,24 @@ import (
 	"github.com/google/uuid"
 )
 
+type RegisterUserInput struct {
+	Email    string
+	Password string
+}
+
+type LoginUserInput struct {
+	Email    string
+	Password string
+}
+
+type User interface {
+	Register(ctx context.Context, input RegisterUserInput) (entity.User, error)
+	Login(ctx context.Context, input LoginUserInput) (entity.User, error)
+
+	// Возвращаем расширенную сущность профиля (пользователь + его заказы)
+	GetProfile(ctx context.Context, userID uuid.UUID) (entity.UserProfile, error)
+}
+
 type CreateRentpointInput struct {
 	Name string
 	Addr string
@@ -68,11 +86,13 @@ type Product interface {
 
 type CreateOrderInput struct {
 	ProductID uuid.UUID
+	UserID    uuid.UUID
 }
 
 type CompleteOrderInput struct {
 	ID               uuid.UUID
 	FinishingPointID uuid.UUID
+	UserID           uuid.UUID
 }
 
 type Order interface {
@@ -87,6 +107,7 @@ type Usecases struct {
 	Template
 	Product
 	Order
+	User
 }
 
 type UsecaseDependencies struct {
@@ -99,5 +120,6 @@ func NewUsecase(d UsecaseDependencies, l logger.Interface) *Usecases {
 		Template:  NewTemplateUsecase(d.Repos.TemplateProduct, l),
 		Product:   NewProductUsecase(d.Repos.Product, d.Repos.TemplateProduct, l),
 		Order:     NewOrderUsecase(d.Repos.Order, l),
+		User:      NewUserUsecase(d.Repos.User, l),
 	}
 }

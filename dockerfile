@@ -10,7 +10,7 @@ RUN go build -o bin/app cmd/app/main.go
 
 # FINAL STAGE
 FROM alpine AS final
-COPY --from=builder /app/config /config
+# COPY --from=builder /app/config /config
 COPY --from=builder /app/migrations /migrations
 COPY --from=builder /app/bin/app /app
 COPY --from=builder /app/.env /.env

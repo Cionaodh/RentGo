@@ -29,8 +29,13 @@ type CompleteOrderDTO struct {
 }
 
 func (r *orderRoutes) create(ctx *fiber.Ctx) error {
-	var body CreateOrderDTO
+	// Достаем ID пользователя из контекста (положенный туда в middleware)
+	userID, ok := ctx.Locals("userID").(uuid.UUID)
+	if !ok {
+		return errorResponse(ctx, http.StatusUnauthorized, "unauthorized")
+	}
 
+	var body CreateOrderDTO
 	if err := ctx.BodyParser(&body); err != nil {
 		return errorResponse(ctx, http.StatusBadRequest, ErrInvalidRequestBody.Error())
 	}
@@ -39,26 +44,24 @@ func (r *orderRoutes) create(ctx *fiber.Ctx) error {
 		return errorResponse(ctx, http.StatusBadRequest, ErrInvalidParameters.Error())
 	}
 
+	// Передаем UserID в юзкейс
 	order, err := r.orderUsecase.Create(ctx.UserContext(), usecase.CreateOrderInput{
 		ProductID: body.ProductID,
+		UserID:    userID,
 	})
-	if err != nil {
 
+	if err != nil {
 		switch {
 		case errors.Is(err, usecase.ErrInvalidProductID):
 			return errorResponse(ctx, http.StatusBadRequest, err.Error())
-
 		case errors.Is(err, usecase.ErrProductNotFound):
 			return errorResponse(ctx, http.StatusNotFound, err.Error())
-
 		case errors.Is(err, usecase.ErrProductAlreadyAssigned),
 			errors.Is(err, usecase.ErrInvalidOrderState):
 			return errorResponse(ctx, http.StatusConflict, err.Error())
-
 		case errors.Is(err, usecase.ErrCreateOrder):
 			return errorResponse(ctx, http.StatusInternalServerError, "internal server error")
 		}
-
 		return errorResponse(ctx, http.StatusInternalServerError, "internal server error")
 	}
 
@@ -101,6 +104,12 @@ func (r *orderRoutes) getByID(ctx *fiber.Ctx) error {
 }
 
 func (r *orderRoutes) complete(ctx *fiber.Ctx) error {
+	// Достаем ID текущего пользователя
+	userID, ok := ctx.Locals("userID").(uuid.UUID)
+	if !ok {
+		return errorResponse(ctx, http.StatusUnauthorized, "unauthorized")
+	}
+
 	id, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
 		return errorResponse(ctx, http.StatusBadRequest, "invalid order id format")
@@ -119,9 +128,9 @@ func (r *orderRoutes) complete(ctx *fiber.Ctx) error {
 	order, err := r.orderUsecase.Complete(ctx.UserContext(), usecase.CompleteOrderInput{
 		ID:               id,
 		FinishingPointID: body.FinishingPointID,
+		UserID:           userID, // Добавлено поле защиты
 	})
 	if err != nil {
-
 		switch {
 		case errors.Is(err, usecase.ErrInvalidOrderID),
 			errors.Is(err, usecase.ErrInvalidRentpointID):
@@ -137,6 +146,9 @@ func (r *orderRoutes) complete(ctx *fiber.Ctx) error {
 
 		case errors.Is(err, usecase.ErrCompleteOrder):
 			return errorResponse(ctx, http.StatusInternalServerError, "internal server error")
+		// Я бы еще добавил обработку ошибки доступа (Forbidden), если заказ чужой:
+		case errors.Is(err, usecase.ErrForbidden):
+			return errorResponse(ctx, http.StatusForbidden, err.Error())
 		}
 
 		return errorResponse(ctx, http.StatusInternalServerError, "internal server error")

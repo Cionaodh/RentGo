@@ -23,7 +23,6 @@ func NewOrderRepo(pg *postgres.Postgres) *OrderRepo {
 }
 
 func (o *OrderRepo) Create(ctx context.Context, in repotype.CreateOrderInput) (entity.Order, error) {
-
 	tx, err := o.Pool.Begin(ctx)
 	if err != nil {
 		return entity.Order{}, fmt.Errorf("OrderRepo - Create - BeginTX(): %w", err)
@@ -32,63 +31,65 @@ func (o *OrderRepo) Create(ctx context.Context, in repotype.CreateOrderInput) (e
 
 	var startPointID uuid.UUID
 
-	// проверяем что продукт свободен и получаем его точку проката
+	// Проверяем, что продукт свободен, и получаем его точку проката
 	const selectProductQuery = `
 		SELECT rentpoint_id 
 		FROM public.products 
 		WHERE id = $1 
 			AND status = 'Free'
 		FOR UPDATE;
-		`
+	`
 
 	err = tx.QueryRow(ctx, selectProductQuery, in.ProductID).Scan(&startPointID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return entity.Order{}, repoerrors.ErrProductNotAvailable // продукта не существует
+			return entity.Order{}, repoerrors.ErrProductNotAvailable
 		}
 		return entity.Order{}, fmt.Errorf("OrderRepo - Create - QueryRow(): %w", err)
 	}
 
-	// Резервируем продукт если он
+	// Резервируем продукт
 	const reserveProductQuery = `
-			UPDATE public.products
-         SET status = 'Rented',
-            rentpoint_id = NULL
-         WHERE id = $1; 
-		`
+		UPDATE public.products
+		SET status = 'Rented',
+			rentpoint_id = NULL
+		WHERE id = $1; 
+	`
 
 	cmdTag, err := tx.Exec(ctx, reserveProductQuery, in.ProductID)
 	if err != nil {
 		return entity.Order{}, fmt.Errorf("OrderRepo - Create - Exec(): %w", err)
 	}
 
-	// Проверяем была ли изменена строка
 	if cmdTag.RowsAffected() == 0 {
-		return entity.Order{}, repoerrors.ErrProductStateInvalid // строка не была изменена
+		return entity.Order{}, repoerrors.ErrProductStateInvalid
 	}
 
-	// Создаём заказ
+	// Создаём заказ с привязкой к user_id
 	const insertOrderQuery = `
-            INSERT INTO public.orders (
-                product_id,
-                starting_point_id
-            )
-            VALUES ($1, $2)
-            RETURNING
-                id,
-                status,
-                product_id,
-                starting_point_id,
-                finishing_point_id,
-                rent_started_at,
-                rent_finished_at;
-      `
+		INSERT INTO public.orders (
+			product_id,
+			starting_point_id,
+			user_id
+		)
+		VALUES ($1, $2, $3)
+		RETURNING
+			id,
+			status,
+			user_id,
+			product_id,
+			starting_point_id,
+			finishing_point_id,
+			rent_started_at,
+			rent_finished_at;
+	`
 
 	var order entity.Order
 
-	err = tx.QueryRow(ctx, insertOrderQuery, in.ProductID, startPointID).Scan(
+	err = tx.QueryRow(ctx, insertOrderQuery, in.ProductID, startPointID, in.UserID).Scan(
 		&order.ID,
 		&order.Status,
+		&order.UserID, // Сохраняем UserID в сущность (нужно добавить поле в entity.Order)
 		&order.ProductID,
 		&order.StartPointID,
 		&order.FigishPointID,
@@ -101,7 +102,7 @@ func (o *OrderRepo) Create(ctx context.Context, in repotype.CreateOrderInput) (e
 		if errors.As(err, &pgErr) {
 			switch pgErr.Code {
 			case "23503":
-				return entity.Order{}, repoerrors.ErrForeignKeyViolation // если внешний ключ не существует
+				return entity.Order{}, repoerrors.ErrForeignKeyViolation
 			}
 		}
 		return entity.Order{}, fmt.Errorf("OrderRepo - Create - QueryRow(): %w", err)

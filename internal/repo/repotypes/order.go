@@ -6,6 +6,7 @@ import (
 
 type CreateOrderInput struct {
 	ProductID uuid.UUID
+	UserID    uuid.UUID
 }
 
 type CompleteOrderInput struct {

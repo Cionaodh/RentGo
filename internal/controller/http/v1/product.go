@@ -21,10 +21,16 @@ func newProductRoutes(p usecase.Product, v *validator.Validate) *productRoutes {
 }
 
 type ProductDTO struct {
-	TemplateId uuid.UUID `json:"template_id"` // id шаблона (обязательно)
+	TemplateId string `json:"template_id" validate:"required,uuid4"` // id шаблона (обязательно)
 	// id точки проката (необязательный)
 	// статус - назначается на бизнес слое ()
-	Number int `json:"number"` // количество (обязательно)
+	Number int `json:"number" validate:"required,gt=0,lte=1000"` // количество от 0 до 1000 (обязательно)
+}
+
+type ProductParamsDTO struct {
+	Status      *entity.ProductStatus `json:"status" validate:"omitempty"` // поля могут быть пустыми
+	TemplateID  *uuid.UUID            `json:"template_id" validate:"omitempty,uuid4"`
+	RentPointID *uuid.UUID            `json:"rentpoint_id" validate:"omitempty,uuid4"`
 }
 
 func (p *productRoutes) create(ctx *fiber.Ctx) error {
@@ -34,11 +40,14 @@ func (p *productRoutes) create(ctx *fiber.Ctx) error {
 	}
 
 	if err := p.v.Struct(body); err != nil {
-		return errorResponse(ctx, http.StatusBadRequest, ErrInvalidParameters.Error())
+		// return errorResponse(ctx, http.StatusBadRequest, ErrInvalidParameters.Error())\
+		return validationErrorResponse(ctx, err)
 	}
 
+	templateUUID, _ := uuid.Parse(body.TemplateId)
+
 	result, err := p.productUsecase.Create(ctx.UserContext(), usecase.CreateProductInput{
-		TemplateId: body.TemplateId,
+		TemplateId: templateUUID,
 		Number:     body.Number,
 	})
 	if err != nil {
@@ -90,21 +99,15 @@ func (p *productRoutes) getByID(ctx *fiber.Ctx) error {
 	return ctx.Status(http.StatusOK).JSON(product)
 }
 
-type ProductParamsDTO struct {
-	Status      *entity.ProductStatus `json:"status" validate:"omitempty"`
-	TemplateID  *uuid.UUID            `json:"template_id" validate:"omitempty"`
-	RentPointID *uuid.UUID            `json:"rentpoint_id" validate:"omitempty"`
-}
-
 func (p *productRoutes) list(ctx *fiber.Ctx) error {
-	var input ProductParamsDTO
+	var params ProductParamsDTO
 
 	if statusStr := ctx.Query("status"); statusStr != "" {
 		st := entity.ProductStatus(statusStr)
 		if !st.IsValid() {
 			return errorResponse(ctx, http.StatusBadRequest, "invalid status")
 		}
-		input.Status = &st
+		params.Status = &st
 	}
 
 	if tmpIDStr := ctx.Query("template_id"); tmpIDStr != "" {
@@ -112,7 +115,7 @@ func (p *productRoutes) list(ctx *fiber.Ctx) error {
 		if err != nil {
 			return errorResponse(ctx, http.StatusBadRequest, "invalid template id format")
 		}
-		input.TemplateID = &id
+		params.TemplateID = &id
 	}
 
 	if rpIDStr := ctx.Query("rentpoint_id"); rpIDStr != "" {
@@ -120,17 +123,53 @@ func (p *productRoutes) list(ctx *fiber.Ctx) error {
 		if err != nil {
 			return errorResponse(ctx, http.StatusBadRequest, "invalid rentpoint id format")
 		}
-		input.RentPointID = &id
+		params.RentPointID = &id
 	}
 
 	products, err := p.productUsecase.List(ctx.UserContext(), usecase.ProductParamsInput{
-		Status:      input.Status,
-		TemplateID:  input.TemplateID,
-		RentPointID: input.RentPointID,
+		Status:      params.Status,
+		TemplateID:  params.TemplateID,
+		RentPointID: params.RentPointID,
 	})
 	if err != nil {
 		return errorResponse(ctx, http.StatusInternalServerError, "failed to fetch products")
 	}
 
 	return ctx.Status(http.StatusOK).JSON(products)
+}
+
+// ======
+// ======
+
+func validationErrorResponse(ctx *fiber.Ctx, err error) error {
+	var ve validator.ValidationErrors
+	if !errors.As(err, &ve) {
+		return errorResponse(ctx, http.StatusBadRequest, "invalid parameters")
+	}
+
+	errorsMap := make(map[string]string)
+	for _, fe := range ve {
+		errorsMap[fe.Field()] = validationMessage(fe)
+	}
+
+	return ctx.Status(http.StatusBadRequest).JSON(fiber.Map{
+		"errors": errorsMap,
+	})
+}
+
+func validationMessage(fe validator.FieldError) string {
+	switch fe.Tag() {
+	case "required":
+		return "is required"
+	case "uuid4":
+		return "must be valid UUIDv4"
+	case "gt":
+		return "must be greater than " + fe.Param()
+	case "lte":
+		return "must be less than or equal to " + fe.Param()
+	case "product_status":
+		return "invalid product status"
+	default:
+		return "invalid value"
+	}
 }

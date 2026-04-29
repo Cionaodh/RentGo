@@ -1,5 +1,3 @@
-version: "3.9"
-
 # .app-env: &app-env
 #   PG_POOL_MAX: "${PG_POOL_MAX}"
 #   POSTGRES_CONN: "${POSTGRES_CONN}"

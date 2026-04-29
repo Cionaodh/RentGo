@@ -25,21 +25,24 @@ func (o *OrderUsecase) Create(ctx context.Context, in CreateOrderInput) (entity.
 	if in.ProductID == uuid.Nil {
 		return entity.Order{}, ErrInvalidProductID
 	}
+	if in.UserID == uuid.Nil {
+		return entity.Order{}, ErrInvalidUserID
+	}
 
 	order, err := o.repo.Create(ctx, repotype.CreateOrderInput{
 		ProductID: in.ProductID,
+		UserID:    in.UserID, // Передаем в БД
 	})
 	if err != nil {
 		switch {
-		// TODO: Разделить обработку 1) продукт не существует 2) продукт уже занят
-		case errors.Is(err, repoerrors.ErrProductNotAvailable),
-			errors.Is(err, repoerrors.ErrProductStateInvalid):
-			return entity.Order{}, ErrProductNotFound // продукта не существует
-			// case errors.Is(err, repoerrors.ErrForeignKeyViolation):
-			// 	return entity.Order{}, err
+		case errors.Is(err, repoerrors.ErrProductNotAvailable):
+			return entity.Order{}, ErrProductAlreadyAssigned // Продукт уже занят
+		case errors.Is(err, repoerrors.ErrProductStateInvalid), errors.Is(err, repoerrors.ErrNotFound):
+			return entity.Order{}, ErrProductNotFound // Продукта не существует
 		}
+
 		o.l.Error("OrderUsecase - Create: %v", err)
-		return entity.Order{}, ErrCreateOrder // internal error - "Ошибка при создании заказа"
+		return entity.Order{}, ErrCreateOrder
 	}
 
 	return order, nil
@@ -74,31 +77,33 @@ func (o *OrderUsecase) GetByID(ctx context.Context, id uuid.UUID) (entity.Order,
 }
 
 func (o *OrderUsecase) Complete(ctx context.Context, in CompleteOrderInput) (entity.Order, error) {
-
 	if in.ID == uuid.Nil {
 		return entity.Order{}, ErrInvalidOrderID
 	}
-
 	if in.FinishingPointID == uuid.Nil {
 		return entity.Order{}, ErrInvalidRentpointID
 	}
 
+	// _, err := o.GetByID(ctx, in.UserID, in.ID)
+	// if err != nil {
+	// 	return entity.Order{}, err // Если не найдено или чужой заказ (ErrForbidden)
+	// }
+
 	order, err := o.repo.Complete(ctx, repotype.CompleteOrderInput{
 		ID:               in.ID,
 		FinishingPointID: in.FinishingPointID,
+		// Можно прокинуть UserID и сюда, если в БД нужна двойная проверка
 	})
 	if err != nil {
 		switch {
 		case errors.Is(err, repoerrors.ErrOrderNotActive):
 			return entity.Order{}, ErrOrderNotActive
-
 		case errors.Is(err, repoerrors.ErrProductStateInvalid):
 			return entity.Order{}, ErrInvalidOrderState
-
 		case errors.Is(err, repoerrors.ErrForeignKeyViolation):
 			return entity.Order{}, ErrRentPointNotFound
-
 		}
+
 		o.l.Error("OrderUsecase - Complete: %v", err)
 		return entity.Order{}, ErrCompleteOrder
 	}
