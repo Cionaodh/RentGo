@@ -12,9 +12,20 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
+
+	"github.com/colinmarc/hdfs/v2"
 )
 
 func Run(cfg *config.Config, l logger.Interface) {
+	// HDFS — подключаемся если включено
+	if cfg.HDFS.Enabled {
+		l.Info("Initializing HDFS...")
+		hdfsClient := waitForHDFS(cfg.HDFS.Addr, l)
+		// Заменяем логгер на версию с HDFS
+		l = logger.NewWithHDFS(cfg.Log.Level, hdfsClient, cfg.App.Name)
+		l.Info("HDFS connected, log mirroring enabled")
+	}
 
 	// Postgres
 	l.Info("Initializing postgres...")
@@ -53,4 +64,16 @@ func Run(cfg *config.Config, l logger.Interface) {
 		l.Error(fmt.Errorf("app - Run - httpServer.Shutdown: %w", err))
 	}
 
+}
+
+// waitForHDFS — ждёт доступности HDFS с ретраями
+func waitForHDFS(addr string, l logger.Interface) *hdfs.Client {
+	for {
+		client, err := hdfs.New(addr)
+		if err == nil {
+			return client
+		}
+		l.Warn("HDFS not ready, retrying in 5s... err: %v", err)
+		time.Sleep(5 * time.Second)
+	}
 }

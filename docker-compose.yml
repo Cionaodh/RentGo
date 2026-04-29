@@ -18,7 +18,6 @@ services:
       context: .
       dockerfile: Dockerfile
     environment:
-      # <<: *app-env
       APP_NAME: "${APP_NAME}"
       APP_VERSION: "${APP_VERSION}"
       PG_POOL_MAX: "${PG_POOL_MAX}"
@@ -26,6 +25,9 @@ services:
       LOG_LEVEL: "${LOG_LEVEL}"
       HTTP_PORT: "${HTTP_PORT}"
       HTTP_USE_PREFORK_MODE: "${HTTP_USE_PREFORK_MODE}"
+      # ↓ Новые переменные для HDFS ↓
+      HDFS_ADDR: "${HDFS_ADDR}"
+      HDFS_ENABLED: "${HDFS_ENABLED}"
     image: go_app
     container_name: "server"
     ports:
@@ -33,6 +35,7 @@ services:
     restart: unless-stopped
     depends_on:
       - db
+      - datanode # ← ждём HDFS
     networks:
       - internet
 
@@ -42,7 +45,6 @@ services:
     ports:
       - "${POSTGRES_PORT}:${POSTGRES_PORT}"
     environment:
-      # <<: *db-env
       POSTGRES_HOST: ${POSTGRES_HOST}
       POSTGRES_PORT: ${POSTGRES_PORT}
       POSTGRES_USER: ${POSTGRES_USERNAME}
@@ -53,8 +55,40 @@ services:
     networks:
       - internet
 
+  namenode:
+    image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+    container_name: namenode
+    restart: always
+    ports:
+      - "9870:9870"
+      - "9000:9000"
+    volumes:
+      - hadoop_namenode:/hadoop/dfs/name
+    env_file:
+      - hadoop.env
+    networks:
+      - internet
+
+  datanode:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    container_name: datanode
+    restart: always
+    depends_on:
+      - namenode
+    ports:
+      - "9864:9864"
+      - "9866:9866"
+    volumes:
+      - hadoop_datanode:/hadoop/dfs/data
+    env_file:
+      - hadoop.env
+    networks:
+      - internet
+
 volumes:
   postgres_data:
+  hadoop_namenode:
+  hadoop_datanode:
 
 networks:
   internet:

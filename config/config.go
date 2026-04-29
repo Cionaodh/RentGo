@@ -12,6 +12,7 @@ type (
 		HTTP HTTP
 		Log  Log
 		PG   PG
+		HDFS HDFSConfig
 	}
 
 	App struct {
@@ -31,6 +32,11 @@ type (
 	PG struct {
 		PoolMax int    `env:"PG_POOL_MAX,required"`
 		Conn    string `env:"POSTGRES_CONN,required"`
+	}
+
+	HDFSConfig struct {
+		Addr    string `env:"HDFS_ADDR"    envDefault:"namenode:9000"`
+		Enabled bool   `env:"HDFS_ENABLED" envDefault:"false"`
 	}
 )
 
