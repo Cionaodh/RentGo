@@ -110,7 +110,7 @@ const (
 
 type Order struct {
 	ID            uuid.UUID   `json:"id"`
-	UserID        uuid.UUID   `jsin:"user_id"`
+	UserID        uuid.UUID   `json:"user_id"`
 	Status        OrderStatus `json:"status"`
 	ProductID     uuid.UUID   `json:"product_id"`
 	StartPointID  uuid.UUID   `json:"start_point_id"`

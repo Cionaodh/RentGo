@@ -119,7 +119,8 @@ func (o *OrderRepo) GetAll(ctx context.Context) ([]entity.Order, error) {
 
 	const query = `
     SELECT 
-        id, 
+        id,
+		  user_id, 
         status, 
         product_id, 
         starting_point_id,
@@ -141,6 +142,7 @@ func (o *OrderRepo) GetAll(ctx context.Context) ([]entity.Order, error) {
 		var order entity.Order
 		if err := rows.Scan(
 			&order.ID,
+			&order.UserID,
 			&order.Status,
 			&order.ProductID,
 			&order.StartPointID,
@@ -164,12 +166,13 @@ func (o *OrderRepo) GetByID(ctx context.Context, id uuid.UUID) (entity.Order, er
 	const selectOrderQuery = `
 		SELECT 
 			id, 
-        status, 
-        product_id, 
-        starting_point_id,
-        finishing_point_id,
-        rent_started_at,
-        rent_finished_at
+			user_id, 
+      	status, 
+      	product_id, 
+      	starting_point_id,
+      	finishing_point_id,
+      	rent_started_at,
+      	rent_finished_at
 		FROM public.orders
 		WHERE id = $1;
 	`
@@ -177,6 +180,7 @@ func (o *OrderRepo) GetByID(ctx context.Context, id uuid.UUID) (entity.Order, er
 	var order entity.Order
 	if err := o.Pool.QueryRow(ctx, selectOrderQuery, id).Scan(
 		&order.ID,
+		&order.UserID,
 		&order.Status,
 		&order.ProductID,
 		&order.StartPointID,
