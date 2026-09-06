@@ -4,7 +4,6 @@ go 1.24.4
 
 require (
 	github.com/caarlos0/env/v11 v11.3.1
-	github.com/colinmarc/hdfs/v2 v2.4.0
 	github.com/go-playground/validator/v10 v10.26.0
 	github.com/goccy/go-json v0.10.5
 	github.com/gofiber/fiber/v2 v2.52.8
@@ -22,16 +21,9 @@ require (
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
-	github.com/hashicorp/go-uuid v1.0.3 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
-	github.com/jcmturner/aescts/v2 v2.0.0 // indirect
-	github.com/jcmturner/dnsutils/v2 v2.0.0 // indirect
-	github.com/jcmturner/gofork v1.7.6 // indirect
-	github.com/jcmturner/goidentity/v6 v6.0.1 // indirect
-	github.com/jcmturner/gokrb5/v8 v8.4.4 // indirect
-	github.com/jcmturner/rpc/v2 v2.0.3 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/lib/pq v1.10.9 // indirect
@@ -45,5 +37,4 @@ require (
 	golang.org/x/sync v0.15.0 // indirect
 	golang.org/x/sys v0.33.0 // indirect
 	golang.org/x/text v0.26.0 // indirect
-	google.golang.org/protobuf v1.34.2 // indirect
 )

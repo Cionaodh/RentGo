@@ -61,8 +61,9 @@ func (o *OrderRepo) Create(ctx context.Context, in repotype.CreateOrderInput) (e
 		return entity.Order{}, fmt.Errorf("OrderRepo - Create - Exec(): %w", err)
 	}
 
+	// проверяем была ли изменена строка
 	if cmdTag.RowsAffected() == 0 {
-		return entity.Order{}, repoerrors.ErrProductStateInvalid
+		return entity.Order{}, repoerrors.ErrProductStateInvalid // строка не изменена
 	}
 
 	// Создаём заказ с привязкой к user_id
