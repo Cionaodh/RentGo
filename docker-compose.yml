@@ -25,7 +25,6 @@ services:
       LOG_LEVEL: "${LOG_LEVEL}"
       HTTP_PORT: "${HTTP_PORT}"
       HTTP_USE_PREFORK_MODE: "${HTTP_USE_PREFORK_MODE}"
-      # ↓ Новые переменные для HDFS ↓
       HDFS_ADDR: "${HDFS_ADDR}"
       HDFS_ENABLED: "${HDFS_ENABLED}"
     image: go_app
@@ -35,7 +34,7 @@ services:
     restart: unless-stopped
     depends_on:
       - db
-      - datanode # ← ждём HDFS
+      - datanode
     networks:
       - internet
 
