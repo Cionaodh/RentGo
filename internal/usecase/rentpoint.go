@@ -65,6 +65,7 @@ func (rp *RentPointUsecase) GetByID(ctx context.Context, id uuid.UUID) (entity.P
 		return entity.ProductRentPoint{}, ErrRentPointNotFound
 	}
 
+	// получаем точку  проката
 	point, err := rp.pointRepo.GetByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, repoerrors.ErrNotFound) {
@@ -74,7 +75,20 @@ func (rp *RentPointUsecase) GetByID(ctx context.Context, id uuid.UUID) (entity.P
 		return entity.ProductRentPoint{}, err
 	}
 
-	return point, nil
+	// получаем список продуктов
+	products, err := rp.productRepo.List(ctx, repotype.ProductParams{RentPointID: &id})
+	if err != nil {
+		rp.l.Error("RentPointUsecase - GetByID: %v", err)
+		return entity.ProductRentPoint{}, ErrFetchProducts
+	}
+
+	// Объединяем данные в структуру ProductRentPoint
+	return entity.ProductRentPoint{
+		Addr:     point.Addr,
+		ID:       point.ID,
+		Name:     point.Name,
+		Products: products,
+	}, nil
 }
 
 func (rp *RentPointUsecase) Delete(context.Context, uuid.UUID) error {

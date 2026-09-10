@@ -24,22 +24,17 @@ type UserProfile struct {
 }
 
 type RentPoint struct {
-	ID   uuid.UUID `json:"id"`
-	Name string    `json:"name"`
-	Addr string    `json:"addr"`
+	ID   uuid.UUID `json:"id" db:"id"`
+	Name string    `json:"name" db:"name"`
+	Addr string    `json:"addr" db:"addr"`
 	// TODO: Координаты (45.63545 74.54345)
 }
 
 type ProductRentPoint struct {
-	ID       uuid.UUID `json:"id"`
-	Name     string    `json:"name"`
-	Addr     string    `json:"addr"`
-	Products []struct {
-		ID     uuid.UUID     `json:"id"`
-		Name   string        `json:"name"`
-		Price  float64       `json:"price"`
-		Status ProductStatus `json:"status"`
-	} `json:"products"`
+	ID       uuid.UUID    `json:"id"`
+	Name     string       `json:"name"`
+	Addr     string       `json:"addr"`
+	Products []ProductsRP `json:"products"`
 }
 
 type ProductTemplate struct {

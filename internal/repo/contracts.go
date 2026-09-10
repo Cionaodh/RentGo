@@ -20,9 +20,9 @@ type User interface {
 type RentPoint interface {
 	Create(context.Context, rp.CreateRentpointInput) (entity.RentPoint, error)
 	GetAll(context.Context) ([]entity.RentPoint, error)
-	GetByID(context.Context, uuid.UUID) (entity.ProductRentPoint, error)
 	// Delete(context.Context, uuid.UUID) error
 	AddProducts(context.Context, rp.AddProductsInput) (entity.ProductRentPoint, error) // Только добавляет продукт
+	GetByID(context.Context, uuid.UUID) (entity.RentPoint, error)
 }
 
 type TemplateProduct interface {
