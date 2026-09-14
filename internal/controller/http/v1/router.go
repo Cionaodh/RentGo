@@ -18,6 +18,7 @@ func NewRoutes(apiV1Group fiber.Router, uc *usecase.Usecases) {
 		rentPointGroup.Get("/", r.getAll)          // GET  /v1/rentpoints/
 		rentPointGroup.Get("/:id", r.getByID)      // GET  /v1/rentpoints/{id}
 		rentPointGroup.Post("/:id", r.addProducts) // POST  /v1/rentpoints/{id} -- TODO: Удалить конечную точку - данный метод должен вызываться в /v1/product
+		rentPointGroup.Delete("/:id", r.delete)
 	}
 
 	//

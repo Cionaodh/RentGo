@@ -91,7 +91,26 @@ func (rp *RentPointUsecase) GetByID(ctx context.Context, id uuid.UUID) (entity.P
 	}, nil
 }
 
-func (rp *RentPointUsecase) Delete(context.Context, uuid.UUID) error {
+func (rp *RentPointUsecase) Delete(ctx context.Context, rentPointID uuid.UUID) error {
+
+	// TODO: потом добавить транзакцию через менеджер транзакций
+
+	if err := rp.pointRepo.Delete(ctx, rentPointID); err != nil {
+		if errors.Is(err, repoerrors.ErrRentPointNotFound) {
+			return ErrRentPointNotFound
+		}
+		rp.l.Error("RentPointUseCase - Delete: %v", err)
+		return ErrDeletionRentPoint
+	}
+
+	// отвязываем все продукты от точки проката
+	if err := rp.productRepo.DetachByRentPointID(ctx, rentPointID); err != nil {
+		rp.l.Error("RentPointUseCase - Delete: %v", err)
+		return ErrDetachProducts
+	}
+
+	// TODO: потом добавить коммит транзации
+
 	return nil
 }
 

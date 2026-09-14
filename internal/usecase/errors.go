@@ -26,12 +26,14 @@ var (
 	ErrFetchProducts          = errors.New("failed to fetch products")
 	ErrProductNotFound        = errors.New("product not found")
 	ErrProductAlreadyAssigned = errors.New("product already assigned")
+	ErrDetachProducts         = errors.New("failed to detach products from rent point")
 
 	ErrRentPointAlreadyExists = errors.New("rent point already exists")
 	ErrRentPointNotFound      = errors.New("rent point not found")
 	ErrCreateRentpoint        = errors.New("failed to create rent point")
 	ErrFetchRentPoints        = errors.New("failed to fetch rent points")
 	ErrInvalidRentpointID     = errors.New("invalid rentpoint id")
+	ErrDeletionRentPoint      = errors.New("error deleting the rental point")
 
 	ErrInvalidOrderID    = errors.New("invalid order id")
 	ErrCreateOrder       = errors.New("failed to create order")

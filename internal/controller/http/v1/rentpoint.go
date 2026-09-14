@@ -129,3 +129,18 @@ func (r *rentPointRoutes) addProducts(ctx *fiber.Ctx) error {
 
 	return ctx.Status(http.StatusOK).JSON(rentpoint)
 }
+
+func (r *rentPointRoutes) delete(ctx *fiber.Ctx) error {
+	rentPointID, err := uuid.Parse(ctx.Params("id"))
+	if err != nil {
+		return errorResponse(ctx, http.StatusBadRequest, "invalid rentpoint ID format")
+	}
+
+	if err = r.pointUsecase.Delete(ctx.UserContext(), rentPointID); err != nil {
+		if errors.Is(err, usecase.ErrRentPointNotFound) {
+			return errorResponse(ctx, http.StatusNotFound, err.Error())
+		}
+		return errorResponse(ctx, http.StatusInternalServerError, err.Error())
+	}
+	return ctx.SendStatus(http.StatusNoContent)
+}

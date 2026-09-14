@@ -20,7 +20,7 @@ type User interface {
 type RentPoint interface {
 	Create(context.Context, rp.CreateRentpointInput) (entity.RentPoint, error)
 	GetAll(context.Context) ([]entity.RentPoint, error)
-	// Delete(context.Context, uuid.UUID) error
+	Delete(ctx context.Context, id uuid.UUID) error
 	AddProducts(context.Context, rp.AddProductsInput) (entity.ProductRentPoint, error) // Только добавляет продукт
 	GetByID(context.Context, uuid.UUID) (entity.RentPoint, error)
 }
@@ -37,6 +37,7 @@ type Product interface {
 	GetByID(context.Context, uuid.UUID) (entity.Product, error)
 	GetByRentpoint(context.Context, uuid.UUID) ([]entity.ProductsRP, error)
 	List(context.Context, rp.ProductParams) ([]entity.ProductsRP, error)
+	DetachByRentPointID(context.Context, uuid.UUID) error
 
 	// GetByParameters() ([]entity.Products, error)
 

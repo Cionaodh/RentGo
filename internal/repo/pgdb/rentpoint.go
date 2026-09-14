@@ -14,15 +14,15 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
-type RentpointRepo struct {
+type RentPointRepo struct {
 	*postgres.Postgres
 }
 
-func NewRentpointRepo(pg *postgres.Postgres) *RentpointRepo {
-	return &RentpointRepo{pg}
+func NewRentpointRepo(pg *postgres.Postgres) *RentPointRepo {
+	return &RentPointRepo{pg}
 }
 
-func (r *RentpointRepo) Create(ctx context.Context, in rp.CreateRentpointInput) (entity.RentPoint, error) {
+func (r *RentPointRepo) Create(ctx context.Context, in rp.CreateRentpointInput) (entity.RentPoint, error) {
 	sql := `
         INSERT INTO rentpoints (name, addr)
         VALUES ($1, $2)
@@ -46,7 +46,7 @@ func (r *RentpointRepo) Create(ctx context.Context, in rp.CreateRentpointInput) 
 	return point, nil
 }
 
-func (r *RentpointRepo) GetAll(ctx context.Context) ([]entity.RentPoint, error) {
+func (r *RentPointRepo) GetAll(ctx context.Context) ([]entity.RentPoint, error) {
 	sql := `
 		SELECT id, name, addr
 		FROM rentpoints;`
@@ -74,7 +74,7 @@ func (r *RentpointRepo) GetAll(ctx context.Context) ([]entity.RentPoint, error) 
 }
 
 // GetByID - Получение точки проката по id (со списком продуктов).
-func (r *RentpointRepo) GetByID(ctx context.Context, id uuid.UUID) (entity.RentPoint, error) {
+func (r *RentPointRepo) GetByID(ctx context.Context, id uuid.UUID) (entity.RentPoint, error) {
 	// TODO: Проверяем удалена ли точка или существует
 
 	sql := `
@@ -93,45 +93,25 @@ func (r *RentpointRepo) GetByID(ctx context.Context, id uuid.UUID) (entity.RentP
 	return rp, nil
 }
 
-func (r *RentpointRepo) Delete(ctx context.Context, id uuid.UUID) error {
+func (r *RentPointRepo) Delete(ctx context.Context, rentPointID uuid.UUID) error {
 
-	tx, err := r.Pool.Begin(ctx)
+	const query = `
+		UPDATE rentpoints
+		SET is_deleted = TRUE
+		WHERE id = $1 AND is_deleted = FALSE`
+
+	tag, err := r.Pool.Exec(ctx, query, rentPointID)
 	if err != nil {
-		return fmt.Errorf("RentpointRepo - Delete - BeginTX(): %w", err)
+		return fmt.Errorf("RentpointRepo - Delete: %w", err)
 	}
-	defer tx.Rollback(ctx)
-
-	// Удаляем связи с продуктами
-	deleteProductsSQL := `
-		DELETE FROM rent_point_products
-		WHERE rent_point_id = $1
-	`
-	if _, err := r.Pool.Exec(ctx, deleteProductsSQL, id); err != nil {
-		return fmt.Errorf("RentpointRepo - Delete - delete products: %w", err)
-	}
-
-	deleteSQL := `
-		DELETE FROM rent_points
-		WHERE id = $1
-	`
-
-	result, err := r.Pool.Exec(ctx, deleteSQL, id)
-	if err != nil {
-		return fmt.Errorf("RentpointRepo - Delete - r.Pool.Exec: %w", err)
-	}
-
-	if result.RowsAffected() == 0 {
-		return repoerrors.ErrNotFound
-	}
-
-	if err := tx.Commit(ctx); err != nil {
-		return fmt.Errorf("RentpointRepo - Delete - Commit(): %w", err)
+	if tag.RowsAffected() == 0 {
+		return repoerrors.ErrRentPointNotFound // возвращаем 404
 	}
 
 	return nil
 }
 
-func (r *RentpointRepo) AddProducts(ctx context.Context, in rp.AddProductsInput) (entity.ProductRentPoint, error) {
+func (r *RentPointRepo) AddProducts(ctx context.Context, in rp.AddProductsInput) (entity.ProductRentPoint, error) {
 	// TODO: Добавить проверку, что продукты доступны (не привязаны к другой точке)
 	sqlUpdate := `
 	UPDATE products

@@ -10,4 +10,6 @@ var (
 	ErrProductNotAvailable = errors.New("product not available")
 	ErrProductStateInvalid = errors.New("product state invalid")
 	ErrOrderNotActive      = errors.New("order not active")
+
+	ErrRentPointNotFound = errors.New("rentpoint not found")
 )

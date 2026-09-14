@@ -233,6 +233,25 @@ func (p *ProductRepo) List(ctx context.Context, in rp.ProductParams) ([]entity.P
 	return products, nil
 }
 
+// DetachByRentPointID - открепляем все продукты от точки проката
+func (p *ProductRepo) DetachByRentPointID(ctx context.Context, rentPointID uuid.UUID) error {
+	const query = `
+		UPDATE products
+		SET status = $2, rentpoint_id = NULL
+		WHERE rentpoint_id = $1`
+
+	if _, err := p.Pool.Exec(ctx, query, rentPointID, entity.StatusUnused); err != nil {
+		return fmt.Errorf("ProductRepo - DetachByRentPointID - p.Pool.Exec: %w", err)
+	}
+
+	return nil
+}
+
+// TODO: Возвращаем обновлен ли продукт {при завершении аренды меняется и статус и точка проката}
+// func (p *ProductRepo) UpdateStatusById(ctx context.Context, id uuid.UUID) error {
+// 	return false, nil
+// }
+
 // func (p *ProductRepo) GetByStatus(context.Context, entity.ProductStatus) ([]entity.Product, error) {
 // 	return []entity.Product{}, nil
 // }
