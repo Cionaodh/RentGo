@@ -93,92 +93,74 @@ func (p *ProductUsecase) List(ctx context.Context, in ProductParamsInput) ([]ent
 	return products, nil
 }
 
-func (p *ProductUsecase) Delete(context.Context, uuid.UUID) error {
+// ReturnToRentPoint возвращает арендованный продукт на точку проката по завершении аренды
+func (p *ProductUsecase) ReturnToRentPoint(ctx context.Context, in AddProductsInput) error {
+	if in.RentPointID == uuid.Nil {
+		return ErrRentPointNotFound
+	}
+
+	if len(in.ProductIDs) != 1 {
+		return ErrSingleProductRequired
+	}
+
+	ids, err := p.productRepo.AddToRentPoint(ctx, repotype.AddToRentPointInput{
+		RentPointID: in.RentPointID,
+		ProductIDs:  in.ProductIDs,
+	}, entity.StatusRented)
+	if err != nil {
+		if errors.Is(err, repoerrors.ErrRentPointNotFound) {
+			return ErrRentPointNotFound
+		}
+		p.l.Error("ProductUsecase - ReturnToRentPoint - AddToRentPoint: %v", err)
+		return ErrAttachProducts
+	}
+
+	if len(ids) != len(in.ProductIDs) {
+		return ErrProductNotFound
+	}
+
 	return nil
 }
 
-// func (p *ProductUsecase) GetByStatus(ctx context.Context, status string) ([]entity.Product, error) {
-// 	// Проверка корректности статуса
-// 	s, err := entity.ParseProductStatus(status)
-// 	if err != nil {
-// 		return []entity.Product{}, fmt.Errorf("%s", err)
-// 	}
-//
-// 	return p.repo.GetByStatus(ctx, s)
-// }
+// MultipleAddToRentPoint прикрепление множества продуктов к точке проката
+func (p *ProductUsecase) MultipleAddToRentPoint(ctx context.Context, in AddProductsInput) ([]entity.ProductsRP, error) {
+	if in.RentPointID == uuid.Nil {
+		return nil, ErrRentPointNotFound //
+	}
 
-// func (p *ProductUsecase) SetStatus(ctx context.Context, id string, status string) (entity.Product, error) {
-// 	// Проверка корректности статуса
-// 	s, err := entity.ParseProductStatus(status)
-// 	if err != nil {
-// 		return entity.Product{}, fmt.Errorf("%s", err)
-// 	}
-//
-// 	// проверка uuid на корректность и преобразование
-// 	if err := uuid.Validate(id); err != nil {
-// 		return entity.Product{}, fmt.Errorf("%s", err)
-// 	}
-//
-// 	if err := p.repo.SetStatus(ctx, uuid.MustParse(id), s); err != nil {
-// 		return entity.Product{}, fmt.Errorf("%s", err)
-// 	}
-//
-// 	prod, err := p.repo.GetByID(ctx, uuid.MustParse(id))
-// 	if err != nil {
-// 		return entity.Product{}, fmt.Errorf("%s", err)
-// 	}
-//
-// 	return prod, nil
-// }
+	if len(in.ProductIDs) == 0 {
+		return nil, ErrEmptyProductIDs
+	}
 
-// func (p *ProductUsecase) SetRentPoint(ctx context.Context, idProduct string, idPoint string) (entity.Product, error) {
-// 	// if err := uuid.Validate(idProduct); err != nil {
-// 	// 	return entity.Product{}, fmt.Errorf("%s", err)
-// 	// }
-//
-// 	// if err := uuid.Validate(idPoint); err != nil {
-// 	// 	return entity.Product{}, fmt.Errorf("%s", err)
-// 	// }
-//
-// 	// point, err := p.repo.SetRentPoint(ctx, uuid.MustParse(idProduct), uuid.MustParse(idPoint)) // Прикрепляем к продукту - пункт проката
-// 	// if err != nil {
-// 	// 	return entity.Product{}, fmt.Errorf("%s", err)
-// 	// }
-//
-// 	// p.rentPointUC.
-//
-// 	// // p.rentPointUC.
-//
-// 	// // Получаем объект точки проката
-// 	// // Вызываем фукнцию добавления продукта в хранилще продуктов Пункта проката
-//
-//
-// 	// return entity.Product, nil
-// 	return entity.Product{}, nil
-// }
+	ids, err := p.productRepo.AddToRentPoint(ctx, repotype.AddToRentPointInput{
+		RentPointID: in.RentPointID,
+		ProductIDs:  in.ProductIDs,
+	}, entity.StatusUnused)
+	if err != nil {
+		if errors.Is(err, repoerrors.ErrRentPointNotFound) {
+			return nil, ErrRentPointNotFound
+		}
+		p.l.Error("ProductUsecase.MultipleAddToRentPoint: %v", err)
+		return nil, ErrAttachProducts
+	}
 
-// func (p *Product) SetRentPoint(ctx context.Context, productID, pointID string) (entity.Product, error) {
-// 	// 1. Валидация ID
-// 	prodUUID, err := uuid.Parse(productID)
-// 	if err != nil { /* ... */ }
-//
-// 	pointUUID, err := uuid.Parse(pointID)
-// 	if err != nil { /* ... */ }
-//
-// 	// 2. Обновляем RentPointID у продукта
-// 	if err := p.repo.SetRentPoint(ctx, prodUUID, pointUUID); err != nil {
-// 		 return entity.Product{}, fmt.Errorf("failed to update product: %w", err)
-// 	}
-//
-// 	// 3. Добавляем продукт в RentPoint (вызов другого домена)
-// 	if err := p.rentPointUC.AddProduct(ctx, pointUUID, prodUUID); err != nil {
-// 		 // Откатываем, если не удалось добавить в RentPoint
-// 		 if rollbackErr := p.repo.SetRentPoint(ctx, prodUUID, uuid.Nil); rollbackErr != nil {
-// 			  return entity.Product{}, fmt.Errorf("failed to add to rent point: %v, rollback failed: %w", err, rollbackErr)
-// 		 }
-// 		 return entity.Product{}, fmt.Errorf("failed to add to rent point: %w", err)
-// 	}
-//
-// 	// 4. Возвращаем обновленный продукт
-// 	return p.repo.GetByID(ctx, prodUUID)
-// }
+	// либо прикреплены все, либо ни один
+	if len(ids) != len(in.ProductIDs) {
+		return nil, ErrProductsNotAvailable
+	}
+	// TODO: добавить поле, в котором будут указаны продукты, которые не удалось прикрепить
+
+	products, err := p.productRepo.List(ctx, repotype.ProductParams{
+		IDs: &ids,
+	})
+	if err != nil {
+		p.l.Error("ProductUsecase - MultipleAddToRentPoint: %v", err)
+		return nil, ErrFetchProducts
+	}
+
+	return products, nil
+}
+
+func (p *ProductUsecase) Delete(context.Context, uuid.UUID) error {
+	return nil
+}

@@ -14,10 +14,9 @@ func NewRoutes(apiV1Group fiber.Router, uc *usecase.Usecases) {
 	rentPointGroup := apiV1Group.Group("/rentpoints")
 	{
 		r := newRentPointRoutes(uc.RentPoint, validator.New(validator.WithRequiredStructEnabled()))
-		rentPointGroup.Post("/", r.create)         // POST /v1/rentpoints/
-		rentPointGroup.Get("/", r.getAll)          // GET  /v1/rentpoints/
-		rentPointGroup.Get("/:id", r.getByID)      // GET  /v1/rentpoints/{id}
-		rentPointGroup.Post("/:id", r.addProducts) // POST  /v1/rentpoints/{id} -- TODO: Удалить конечную точку - данный метод должен вызываться в /v1/product
+		rentPointGroup.Post("/", r.create)    // POST /v1/rentpoints/
+		rentPointGroup.Get("/", r.getAll)     // GET  /v1/rentpoints/
+		rentPointGroup.Get("/:id", r.getByID) // GET  /v1/rentpoints/{id}
 		rentPointGroup.Delete("/:id", r.delete)
 	}
 
@@ -34,11 +33,11 @@ func NewRoutes(apiV1Group fiber.Router, uc *usecase.Usecases) {
 	productGroup := apiV1Group.Group("/products")
 	{
 		p := newProductRoutes(uc.Product, validator.New(validator.WithRequiredStructEnabled()))
-		productGroup.Post("/", p.create)     // POST /v1/products/
-		productGroup.Get("/", p.getAll)      // GET /v1/products/
-		productGroup.Get("/params/", p.list) // GET /v1/products/
-		productGroup.Get("/:id", p.getByID)  // GET /v1/products/{id}
-		// productGroup.Patch("/a")) // добавление продукта в точку проката
+		productGroup.Post("/", p.create)          // POST /v1/products/
+		productGroup.Get("/", p.getAll)           // GET /v1/products/
+		productGroup.Get("/params/", p.list)      // GET /v1/products/
+		productGroup.Get("/:id", p.getByID)       // GET /v1/products/{id}
+		productGroup.Patch("/", p.addToRentPoint) // PATCH /v1/products/
 	}
 
 	//

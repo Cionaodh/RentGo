@@ -3,6 +3,7 @@ package usecase
 import "errors"
 
 var (
+	// user
 	ErrUserAlreadyExists  = errors.New("user with this email already exists")
 	ErrUserNotFound       = errors.New("user not found")
 	ErrInvalidCredentials = errors.New("invalid email or password")
@@ -11,6 +12,7 @@ var (
 	ErrFieldIsEmpty   = errors.New("name and address cannot be empty")
 	ErrFieldIsTooLong = errors.New("name or address is too long")
 
+	// template
 	ErrInvalidTemplateName   = errors.New("invalid template name")
 	ErrInvalidTemplatePrice  = errors.New("invalid template price")
 	ErrInvalidTemplateID     = errors.New("invalid template id")
@@ -20,6 +22,7 @@ var (
 	ErrCreateTemplate        = errors.New("failed to create template")
 	ErrGetAllTemplate        = errors.New("failed to get all templates")
 
+	// product
 	ErrInvalidProductID       = errors.New("invalid product id")
 	ErrInvalidProductQty      = errors.New("invalid product quantity")
 	ErrCreateProduct          = errors.New("failed to create product")
@@ -27,7 +30,12 @@ var (
 	ErrProductNotFound        = errors.New("product not found")
 	ErrProductAlreadyAssigned = errors.New("product already assigned")
 	ErrDetachProducts         = errors.New("failed to detach products from rent point")
+	ErrEmptyProductIDs        = errors.New("product ids list is empty")
+	ErrProductsNotAvailable   = errors.New("some products are not available for attaching")
+	ErrAttachProducts         = errors.New("failed to attach products to rent point")
+	ErrSingleProductRequired  = errors.New("exactly one product id is required")
 
+	// rentpoint
 	ErrRentPointAlreadyExists = errors.New("rent point already exists")
 	ErrRentPointNotFound      = errors.New("rent point not found")
 	ErrCreateRentpoint        = errors.New("failed to create rent point")
@@ -35,6 +43,7 @@ var (
 	ErrInvalidRentpointID     = errors.New("invalid rentpoint id")
 	ErrDeletionRentPoint      = errors.New("error deleting the rental point")
 
+	// order
 	ErrInvalidOrderID    = errors.New("invalid order id")
 	ErrCreateOrder       = errors.New("failed to create order")
 	ErrFetchOrders       = errors.New("failed to fetch orders")

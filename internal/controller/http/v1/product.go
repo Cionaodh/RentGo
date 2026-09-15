@@ -138,6 +138,40 @@ func (p *productRoutes) list(ctx *fiber.Ctx) error {
 	return ctx.Status(http.StatusOK).JSON(products)
 }
 
+type AddToRentPointDTO struct {
+	ProductIDs  uuid.UUIDs `json:"product_ids" validate:"required,min=1,dive,required"`
+	RentPointID uuid.UUID  `json:"rentpoint_id" validate:"required"`
+}
+
+func (p *productRoutes) addToRentPoint(ctx *fiber.Ctx) error {
+	var body AddToRentPointDTO
+	if err := ctx.BodyParser(&body); err != nil {
+		return errorResponse(ctx, http.StatusBadRequest, "invalid request body")
+	}
+	if err := p.v.Struct(body); err != nil {
+		return errorResponse(ctx, http.StatusBadRequest, "request body validation error")
+	}
+
+	products, err := p.productUsecase.MultipleAddToRentPoint(ctx.UserContext(), usecase.AddProductsInput{
+		RentPointID: body.RentPointID,
+		ProductIDs:  body.ProductIDs,
+	})
+	if err != nil {
+		switch {
+		case errors.Is(err, usecase.ErrRentPointNotFound):
+			return errorResponse(ctx, http.StatusNotFound, err.Error())
+		case errors.Is(err, usecase.ErrEmptyProductIDs):
+			return errorResponse(ctx, http.StatusBadRequest, err.Error())
+		case errors.Is(err, usecase.ErrProductsNotAvailable):
+			return errorResponse(ctx, http.StatusConflict, err.Error())
+		default:
+			return errorResponse(ctx, http.StatusInternalServerError, "internal server error")
+		}
+	}
+
+	return ctx.Status(http.StatusOK).JSON(products)
+}
+
 // ======
 // ======
 

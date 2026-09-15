@@ -113,32 +113,3 @@ func (rp *RentPointUsecase) Delete(ctx context.Context, rentPointID uuid.UUID) e
 
 	return nil
 }
-
-func (rp *RentPointUsecase) AddProduct(ctx context.Context, in AddProductsInput) (entity.ProductRentPoint, error) {
-	if in.RentpointID == uuid.Nil {
-		return entity.ProductRentPoint{}, ErrRentPointNotFound
-	}
-	if len(in.ProductsID) == 0 {
-		return entity.ProductRentPoint{}, ErrProductNotFound
-	}
-
-	point, err := rp.pointRepo.AddProducts(ctx, repotype.AddProductsInput{
-		ID_rentpoint: in.RentpointID,
-		IDs_products: in.ProductsID,
-		Status:       entity.StatusFree,
-	})
-	if err != nil {
-		switch {
-		case errors.Is(err, repoerrors.ErrNotFound):
-			return entity.ProductRentPoint{}, ErrRentPointNotFound
-		case errors.Is(err, repoerrors.ErrForeignKeyViolation):
-			return entity.ProductRentPoint{}, ErrProductNotFound
-		default:
-			rp.l.Error("RentPointUsecase - AddProduct: %v", err)
-			return entity.ProductRentPoint{}, err
-		}
-	}
-
-	return point, nil
-	// TODO: Добавить проверку, что продукты доступны (не привязаны к другой точке)
-}

@@ -33,8 +33,8 @@ type CreateRentpointInput struct {
 }
 
 type AddProductsInput struct {
-	RentpointID uuid.UUID
-	ProductsID  uuid.UUIDs
+	RentPointID uuid.UUID
+	ProductIDs  uuid.UUIDs
 }
 
 type RentPoint interface {
@@ -42,7 +42,6 @@ type RentPoint interface {
 	GetAll(context.Context) ([]entity.RentPoint, error)
 	GetByID(context.Context, uuid.UUID) (entity.ProductRentPoint, error)
 	Delete(context.Context, uuid.UUID) error
-	AddProduct(context.Context, AddProductsInput) (entity.ProductRentPoint, error)
 }
 
 type CreateTemplateInput struct {
@@ -74,6 +73,7 @@ type Product interface {
 	GetByID(context.Context, uuid.UUID) (entity.Product, error)
 	Delete(context.Context, uuid.UUID) error
 	List(context.Context, ProductParamsInput) ([]entity.ProductsRP, error)
+	MultipleAddToRentPoint(context.Context, AddProductsInput) ([]entity.ProductsRP, error)
 
 	// GetByStatus(context.Context, entity.ProductStatus) ([]entity.Product, error)
 	// GetByRentPointID(context.Context, uuid.UUID) ([]entity.Product, error)

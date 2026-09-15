@@ -111,62 +111,6 @@ func (r *RentPointRepo) Delete(ctx context.Context, rentPointID uuid.UUID) error
 	return nil
 }
 
-func (r *RentPointRepo) AddProducts(ctx context.Context, in rp.AddProductsInput) (entity.ProductRentPoint, error) {
-	// TODO: Добавить проверку, что продукты доступны (не привязаны к другой точке)
-	sqlUpdate := `
-	UPDATE products
-	SET 
-	    rentpoint_id = $1,
-	    status = $2
-	WHERE id = ANY($3);
-	`
-
-	tx, err := r.Pool.Begin(ctx)
-	if err != nil {
-		return entity.ProductRentPoint{}, fmt.Errorf("RentpointRepo - AddProducts - r.Pool.Begin: %w", err)
-	}
-	defer tx.Rollback(ctx)
-
-	_, err = tx.Exec(ctx, sqlUpdate, in.ID_rentpoint, in.Status, in.IDs_products)
-	if err != nil {
-		return entity.ProductRentPoint{}, fmt.Errorf("RentpointRepo - AddProducts - tx.Exec: %w", err)
-	}
-
-	sqlGet := `
-	SELECT 
-	    r.id,
-	    r.name,
-	    r.addr,
-	    COALESCE(
-	        JSON_AGG(
-	            JSON_BUILD_OBJECT(
-	                'id', p.id,
-	                'name', t.name,
-	                'price', t.price,
-	                'status', p.status
-	            )
-	        ) FILTER (WHERE p.id IS NOT NULL),
-	        '[]'
-	    ) AS products
-	FROM rentpoints r
-	LEFT JOIN products p ON r.id = p.rentpoint_id
-	LEFT JOIN templates t ON p.template_id = t.id
-	WHERE r.id = $1
-	GROUP BY r.id, r.name, r.addr;
-	`
-
-	var rp entity.ProductRentPoint
-	if err = tx.QueryRow(ctx, sqlGet, in.ID_rentpoint).Scan(&rp.ID, &rp.Name, &rp.Addr, &rp.Products); err != nil {
-		return entity.ProductRentPoint{}, fmt.Errorf("RentpointRepo - AddProducts - r.Pool.QueryRow: %w", err)
-	}
-
-	if err := tx.Commit(ctx); err != nil {
-		return entity.ProductRentPoint{}, fmt.Errorf("RentpointRepo - AddProducts - tx.Commit: %w", err)
-	}
-
-	return rp, nil
-}
-
 // getPointProducts - получение списка продуктов точки проката
 // func (r *RentpointRepo) getPointProducts(ctx context.Context, pointID uuid.UUID) ([]uuid.UUID, error) {
 // 	sql := `

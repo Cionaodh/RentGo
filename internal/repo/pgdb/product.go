@@ -202,6 +202,12 @@ func (p *ProductRepo) List(ctx context.Context, in rp.ProductParams) ([]entity.P
 		argID++
 	}
 
+	if in.IDs != nil {
+		conditions = append(conditions, fmt.Sprintf("p.id = ANY($%d)", argID))
+		args = append(args, *in.IDs)
+		argID++
+	}
+
 	if len(conditions) > 0 {
 		baseQuery += " WHERE " + strings.Join(conditions, " AND ")
 	}
@@ -245,6 +251,37 @@ func (p *ProductRepo) DetachByRentPointID(ctx context.Context, rentPointID uuid.
 	}
 
 	return nil
+}
+
+func (p *ProductRepo) AddToRentPoint(ctx context.Context, in rp.AddToRentPointInput, status entity.ProductStatus) (uuid.UUIDs, error) {
+	const query = `
+		UPDATE products
+		SET status = $1, rentpoint_id = $2
+		WHERE id = ANY($3) AND status = $4 AND rentpoint_id IS NULL
+		RETURNING id`
+
+	rows, err := p.Pool.Query(ctx, query, entity.StatusFree, in.RentPointID, in.ProductIDs, status)
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23503" { // rentpoint не существует
+			return nil, repoerrors.ErrRentPointNotFound
+		}
+		return nil, fmt.Errorf("ProductRepo - AddToRentPoint - Query: %w", err)
+	}
+	defer rows.Close()
+
+	ids := make(uuid.UUIDs, 0, len(in.ProductIDs))
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("ProductRepo - AddToRentPoint - Scan: %w", err)
+		}
+		ids = append(ids, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("ProductRepo - AddToRentPoint - rows.Err: %w", err)
+	}
+	return ids, nil
 }
 
 // TODO: Возвращаем обновлен ли продукт {при завершении аренды меняется и статус и точка проката}
